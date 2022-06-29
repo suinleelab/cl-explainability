@@ -260,7 +260,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _forward_impl(self, x, apply_head=True):
+    def _forward_impl(self, x, apply_eval_head=True):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -274,13 +274,13 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        if apply_head:
+        if apply_eval_head:
             x = self.fc(x)
 
         return x
 
-    def forward(self, x, apply_head=True):
-        return self._forward_impl(x, apply_head=apply_head)
+    def forward(self, x, apply_eval_head=True):
+        return self._forward_impl(x, apply_head=apply_eval_head)
 
 
 def resnet50x1(**kwargs):
