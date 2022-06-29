@@ -280,7 +280,7 @@ class ResNet(nn.Module):
         return x
 
     def forward(self, x, apply_eval_head=True):
-        return self._forward_impl(x, apply_head=apply_eval_head)
+        return self._forward_impl(x, apply_eval_head=apply_eval_head)
 
 
 def resnet50x1(**kwargs):
