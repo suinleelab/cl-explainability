@@ -4,6 +4,7 @@ import argparse
 import os
 import pickle
 import sys
+from functools import partial
 from typing import List, Tuple
 
 import constants
@@ -196,63 +197,46 @@ def main():
         )
         image_ablation = ImageAblation(explanation_model, feature_attr_size)
 
+        if args.attribution_name == "vanilla_grad":
+            attribution_model = Saliency(explanation_model)
+            attribute = partial(attribution_model.attribute, abs=False)
+        elif args.attribution_name == "int_grad":
+            attribution_model = IntegratedGradients(explanation_model)
+            attribute = partial(attribution_model.attribute)
+        else:
+            raise NotImplementedError(
+                f"{args.attribution_name} attribution is not implemented!"
+            )
+
         attribution_list = []
         insertion_curve_list = []
         deletion_curve_list = []
         insertion_num_features = None
         deletion_num_features = None
-        if args.attribution_name == "vanilla_grad":
-            attribution_model = Saliency(explanation_model)
-            for explicand, _ in explicand_dataloader:
-                explicand = explicand.to(device)
-                explicand.requires_grad = True
-                attribution = attribution_model.attribute(explicand, abs=False)
-                if args.take_attribution_abs:
-                    attribution = attribution.abs()
-                attribution = attribution.sum(dim=1).unsqueeze(1)
-                insertion_curve, insertion_num_features = image_ablation.evaluate(
-                    explicand,
-                    attribution,
-                    baseline,
-                    kind="insertion",
-                )
-                deletion_curve, deletion_num_features = image_ablation.evaluate(
-                    explicand,
-                    attribution,
-                    baseline,
-                    kind="deletion",
-                )
-                attribution_list.append(attribution.detach().cpu())
-                insertion_curve_list.append(insertion_curve.detach().cpu())
-                deletion_curve_list.append(deletion_curve.detach().cpu())
-        elif args.attribution_name == "int_grad":
-            attribution_model = IntegratedGradients(explanation_model)
-            for explicand, _ in explicand_dataloader:
-                explicand = explicand.to(device)
-                explicand.requires_grad = True
-                attribution = attribution_model.attribute(explicand)
-                if args.take_attribution_abs:
-                    attribution = attribution.abs()
-                attribution = attribution.sum(dim=1).unsqueeze(1)
-                insertion_curve, insertion_num_features = image_ablation.evaluate(
-                    explicand,
-                    attribution,
-                    baseline,
-                    kind="insertion",
-                )
-                deletion_curve, deletion_num_features = image_ablation.evaluate(
-                    explicand,
-                    attribution,
-                    baseline,
-                    kind="deletion",
-                )
-                attribution_list.append(attribution.detach().cpu())
-                insertion_curve_list.append(insertion_curve.detach().cpu())
-                deletion_curve_list.append(deletion_curve.detach().cpu())
-        else:
-            raise NotImplementedError(
-                f"{args.attribution_name} attribution is not implemented!"
+
+        for explicand, _ in explicand_dataloader:
+            explicand = explicand.to(device)
+            explicand.requires_grad = True
+            attribution = attribute(explicand)
+            if args.take_attribution_abs:
+                attribution = attribution.abs()
+            attribution = attribution.sum(dim=1).unsqueeze(1)
+            insertion_curve, insertion_num_features = image_ablation.evaluate(
+                explicand,
+                attribution,
+                baseline,
+                kind="insertion",
             )
+            deletion_curve, deletion_num_features = image_ablation.evaluate(
+                explicand,
+                attribution,
+                baseline,
+                kind="deletion",
+            )
+            attribution_list.append(attribution.detach().cpu())
+            insertion_curve_list.append(insertion_curve.detach().cpu())
+            deletion_curve_list.append(deletion_curve.detach().cpu())
+
         outputs[target]["attributions"] = torch.cat(attribution_list)
         outputs[target]["insertion_curves"] = torch.cat(insertion_curve_list)
         outputs[target]["deletion_curves"] = torch.cat(deletion_curve_list)
