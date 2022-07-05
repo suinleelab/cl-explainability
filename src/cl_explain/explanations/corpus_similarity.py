@@ -12,30 +12,24 @@ class CorpusSimilarity(nn.Module):
     Args:
     ----
         encoder: Encoder module to explain.
-        corpus: Corpus examples, with shape (corpus_size, *), where * indicates the
-            input dimensions of `encoder`.
-        corpus_batch_size: Mini-batch size for loading the corpus examples. This is
-            useful when the entire corpus set fails to fit in compute memory.
+        corpus_dataloader: Data loader of corpus examples, with shape (corpus_size, *),
+            where * indicates the input dimensions of `encoder`.
+        corpus_batch_size: Mini-batch size for loading the corpus representations. This
+            is useful when the entire corpus set fails to fit in compute memory.
         sigma2: The variance parameter for the Gaussian similarity kernel.
     """
 
     def __init__(
         self,
         encoder: nn.Module,
-        corpus: torch.Tensor,
+        corpus_dataloader: DataLoader,
         corpus_batch_size: int = 64,
         sigma2: float = 1.0,
     ) -> None:
         super().__init__()
         self.encoder = encoder
-        self.corpus = corpus
+        self.corpus_dataloader = corpus_dataloader
         self.sigma2 = sigma2
-
-        self.corpus_dataloader = DataLoader(
-            TensorDataset(corpus),
-            batch_size=corpus_batch_size,
-            shuffle=False,
-        )
 
         self.corpus_rep = self._encode_corpus()
         self.rep_dim = self.corpus_rep.size(-1)
@@ -60,7 +54,7 @@ class CorpusSimilarity(nn.Module):
     def _encode_corpus(self) -> torch.Tensor:
         encoder_device = [param.device for param in self.encoder.parameters()][0]
         corpus_rep = []
-        for (x,) in self.corpus_dataloader:
+        for x, _ in self.corpus_dataloader:
             x = x.to(encoder_device)
             x = self.encoder(x).detach().cpu()
             corpus_rep.append(x)
