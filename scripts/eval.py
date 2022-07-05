@@ -17,6 +17,7 @@ from eval_utils import get_device, make_reproducible
 from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
 
+from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.metrics.ablation import ImageAblation
@@ -202,6 +203,9 @@ def main():
             attribute = partial(attribution_model.attribute, abs=False)
         elif args.attribution_name == "int_grad":
             attribution_model = IntegratedGradients(explanation_model)
+            attribute = partial(attribution_model.attribute)
+        elif args.attribution_name == "random_baseline":
+            attribution_model = RandomBaseline(explanation_model)
             attribute = partial(attribution_model.attribute)
         else:
             raise NotImplementedError(
