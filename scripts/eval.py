@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
+from cl_explain.metrics.ablation import ImageAblation
 
 
 def parse_args():
@@ -66,7 +67,7 @@ def parse_args():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=64,
+        default=32,
         help="batch size for all data loaders",
         dest="batch_size",
     )
@@ -152,8 +153,16 @@ def main():
     make_reproducible(args.seed)
     device = get_device(args.use_gpu, args.gpu_num)
     encoder = load_encoder(args.encoder_name)
+    encoder.eval()
     encoder.to(device)
     dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
+    if args.dataset_name == "imagenette2":
+        feature_attr_size = 1 * 224 * 224
+        baseline = torch.zeros(1, 3, 224, 224).to(device)
+    else:
+        raise NotImplementedError(
+            f"--dataset-name={args.dataset_name} is not implemented!"
+        )
 
     labels = []
     for _, label in dataloader:
@@ -185,35 +194,70 @@ def main():
         explanation_model = CorpusSimilarity(
             encoder, corpus_dataloader, corpus_batch_size=args.batch_size
         )
+        image_ablation = ImageAblation(explanation_model, feature_attr_size)
 
+        attribution_list = []
+        insertion_curve_list = []
+        deletion_curve_list = []
+        insertion_num_features = None
+        deletion_num_features = None
         if args.attribution_name == "vanilla_grad":
             attribution_model = Saliency(explanation_model)
-            attributions = []
             for explicand, _ in explicand_dataloader:
+                explicand = explicand.to(device)
                 explicand.requires_grad = True
-                attributions.append(
-                    attribution_model.attribute(explicand.to(device), abs=False)
-                    .detach()
-                    .cpu()
+                attribution = attribution_model.attribute(explicand, abs=False)
+                if args.take_attribution_abs:
+                    attribution = attribution.abs()
+                attribution = attribution.sum(dim=1).unsqueeze(1)
+                insertion_curve, insertion_num_features = image_ablation.evaluate(
+                    explicand,
+                    attribution,
+                    baseline,
+                    kind="insertion",
                 )
+                deletion_curve, deletion_num_features = image_ablation.evaluate(
+                    explicand,
+                    attribution,
+                    baseline,
+                    kind="deletion",
+                )
+                attribution_list.append(attribution.detach().cpu())
+                insertion_curve_list.append(insertion_curve.detach().cpu())
+                deletion_curve_list.append(deletion_curve.detach().cpu())
         elif args.attribution_name == "int_grad":
             attribution_model = IntegratedGradients(explanation_model)
-            attributions = []
             for explicand, _ in explicand_dataloader:
+                explicand = explicand.to(device)
                 explicand.requires_grad = True
-                attributions.append(
-                    attribution_model.attribute(explicand.to(device)).detach().cpu()
+                attribution = attribution_model.attribute(explicand)
+                if args.take_attribution_abs:
+                    attribution = attribution.abs()
+                attribution = attribution.sum(dim=1).unsqueeze(1)
+                insertion_curve, insertion_num_features = image_ablation.evaluate(
+                    explicand,
+                    attribution,
+                    baseline,
+                    kind="insertion",
                 )
+                deletion_curve, deletion_num_features = image_ablation.evaluate(
+                    explicand,
+                    attribution,
+                    baseline,
+                    kind="deletion",
+                )
+                attribution_list.append(attribution.detach().cpu())
+                insertion_curve_list.append(insertion_curve.detach().cpu())
+                deletion_curve_list.append(deletion_curve.detach().cpu())
         else:
             raise NotImplementedError(
                 f"{args.attribution_name} attribution is not implemented!"
             )
-        attributions = torch.cat(attributions)
-        if args.take_attribution_abs:
-            attributions = attributions.abs()
-        outputs[target]["attributions"] = attributions
-
-        # TODO: Evaluate attributions and save evaluation results to outputs.
+        outputs[target]["attributions"] = torch.cat(attribution_list)
+        outputs[target]["insertion_curves"] = torch.cat(insertion_curve_list)
+        outputs[target]["deletion_curves"] = torch.cat(deletion_curve_list)
+        outputs[target]["insertion_num_features"] = insertion_num_features
+        outputs[target]["deletion_num_features"] = deletion_num_features
 
     # Save all outputs.
     attribution_name = args.attribution_name
@@ -227,7 +271,11 @@ def main():
         f"{args.seed}",
     )
     os.makedirs(result_path, exist_ok=True)
-    with open(os.path.join(result_path, "outputs.pkl"), "wb") as handle:
+    output_filename = "outputs"
+    output_filename += f"_corpus_size={args.corpus_size}"
+    output_filename += f"_explicand_size={args.explicand_size}"
+    output_filename += ".pkl"
+    with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
 
 
