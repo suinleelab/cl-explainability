@@ -154,9 +154,11 @@ def main():
     args = parse_args()
     make_reproducible(args.seed)
     device = get_device(args.use_gpu, args.gpu_num)
+    print("Loading encoder...")
     encoder = load_encoder(args.encoder_name)
     encoder.eval()
     encoder.to(device)
+    print("Loading dataset...")
     dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
     if args.dataset_name == "imagenette2":
         feature_attr_size = 1 * 224 * 224
@@ -173,6 +175,7 @@ def main():
     unique_labels = labels.unique().numpy()
     outputs = {target: {"source_label": class_map[target]} for target in unique_labels}
 
+    print("Computing and evaluating feature attributions for each class...")
     for target in tqdm(unique_labels):
         idx = (labels == target).nonzero().flatten()
         idx = idx[torch.randperm(idx.size(0))]
@@ -247,7 +250,7 @@ def main():
         outputs[target]["insertion_num_features"] = insertion_num_features
         outputs[target]["deletion_num_features"] = deletion_num_features
 
-    # Save all outputs.
+    print("Saving outputs...")
     attribution_name = args.attribution_name
     if args.take_attribution_abs:
         attribution_name += "_abs"
@@ -265,6 +268,7 @@ def main():
     output_filename += ".pkl"
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
+    print("Done!")
 
 
 if __name__ == "__main__":
