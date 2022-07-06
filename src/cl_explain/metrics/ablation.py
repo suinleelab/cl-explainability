@@ -134,10 +134,6 @@ class ImageAblation:
             num_features += step_size
             for i in range(batch_size):
                 flat_mask[i, sorted_idx[i, :num_features]] = fill_val
-
-            import pdb
-
-            pdb.set_trace()
             mask = flat_mask.view(attribution.shape)
             if self.mask_upsampler is not None:
                 mask = self.mask_upsampler(mask)
