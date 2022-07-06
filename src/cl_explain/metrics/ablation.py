@@ -52,13 +52,13 @@ class ImageAblation:
         self.feature_attr_size = attr_h * attr_w
         self.step_sizes = self._get_step_sizes()
 
-        if superpixel_h * superpixel_w > 1:
+        if superpixel_h == 1 and superpixel_w == 1:
+            self.mask_upsampler = None
+        else:
             mask_upsampler = nn.Upsample(
                 scale_factor=(superpixel_h, superpixel_w), mode="nearest"
             )
             self.mask_upsampler = mask_upsampler
-        else:
-            self.mask_upsampler = None
 
     def evaluate(
         self,
