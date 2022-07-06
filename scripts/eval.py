@@ -171,7 +171,6 @@ def main():
     if args.dataset_name == "imagenette2":
         img_w = 224
         img_h = 224
-        feature_attr_size = 1 * img_w * img_h
         baseline = torch.zeros(1, 3, img_w, img_h).to(device)
     else:
         raise NotImplementedError(
@@ -213,7 +212,13 @@ def main():
         explanation_model = CorpusSimilarity(
             encoder, corpus_dataloader, corpus_batch_size=args.batch_size
         )
-        image_ablation = ImageAblation(explanation_model, feature_attr_size)
+        image_ablation = ImageAblation(
+            explanation_model,
+            img_h,
+            img_w,
+            superpixel_h=args.superpixel_dim,
+            superpixel_w=args.superpixel_dim,
+        )
 
         if args.attribution_name == "vanilla_grad":
             attribution_model = Saliency(explanation_model)
@@ -294,6 +299,7 @@ def main():
     output_filename = "outputs"
     output_filename += f"_corpus_size={args.corpus_size}"
     output_filename += f"_explicand_size={args.explicand_size}"
+    output_filename += f"_superpixel_dim={args.superpixel_dim}"
     output_filename += ".pkl"
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
