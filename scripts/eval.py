@@ -233,7 +233,7 @@ def main():
             feature_mask = feature_mask.to(device)
             attribution_model = KernelShap(explanation_model)
             attribute = partial(
-                attribution_model.attribute, n_samples=50, feature_mask=feature_mask
+                attribution_model.attribute, n_samples=10000, feature_mask=feature_mask
             )
         elif args.attribution_name == "random_baseline":
             attribution_model = RandomBaseline(explanation_model)
