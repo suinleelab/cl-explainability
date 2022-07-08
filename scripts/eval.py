@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from captum.attr import IntegratedGradients, Saliency
+from captum.attr import IntegratedGradients, KernelShap, Saliency
 from eval_utils import get_device, make_reproducible
 from torch.utils.data import DataLoader, Dataset, Subset
 from tqdm import tqdm
@@ -21,6 +21,7 @@ from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.metrics.ablation import ImageAblation
+from cl_explain.utils import make_superpixel_map
 
 
 def parse_args():
@@ -35,7 +36,7 @@ def parse_args():
     parser.add_argument(
         "attribution_name",
         type=str,
-        choices=["vanilla_grad", "int_grad", "random_baseline"],
+        choices=["vanilla_grad", "int_grad", "kernel_shap", "random_baseline"],
         help="name of feature attribution method to use",
     )
     parser.add_argument(
@@ -72,6 +73,13 @@ def parse_args():
         default=32,
         help="batch size for all data loaders",
         dest="batch_size",
+    )
+    parser.add_argument(
+        "--superpixel-dim",
+        type=int,
+        default=1,
+        help="superpixel width and height for attributions and ablation evaluations",
+        dest="superpixel_dim",
     )
     parser.add_argument(
         "--use-gpu",
@@ -161,12 +169,17 @@ def main():
     print("Loading dataset...")
     dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
     if args.dataset_name == "imagenette2":
-        feature_attr_size = 1 * 224 * 224
-        baseline = torch.zeros(1, 3, 224, 224).to(device)
+        img_w = 224
+        img_h = 224
+        baseline = torch.zeros(1, 3, img_w, img_h).to(device)
     else:
         raise NotImplementedError(
             f"--dataset-name={args.dataset_name} is not implemented!"
         )
+    if args.superpixel_dim > 1:
+        pixelate = nn.AvgPool2d(kernel_size=(args.superpixel_dim, args.superpixel_dim))
+    else:
+        pixelate = None
 
     labels = []
     for _, label in dataloader:
@@ -199,7 +212,13 @@ def main():
         explanation_model = CorpusSimilarity(
             encoder, corpus_dataloader, corpus_batch_size=args.batch_size
         )
-        image_ablation = ImageAblation(explanation_model, feature_attr_size)
+        image_ablation = ImageAblation(
+            explanation_model,
+            img_h,
+            img_w,
+            superpixel_h=args.superpixel_dim,
+            superpixel_w=args.superpixel_dim,
+        )
 
         if args.attribution_name == "vanilla_grad":
             attribution_model = Saliency(explanation_model)
@@ -207,6 +226,15 @@ def main():
         elif args.attribution_name == "int_grad":
             attribution_model = IntegratedGradients(explanation_model)
             attribute = partial(attribution_model.attribute)
+        elif args.attribution_name == "kernel_shap":
+            feature_mask = make_superpixel_map(
+                img_h, img_w, args.superpixel_dim, args.superpixel_dim
+            )
+            feature_mask = feature_mask.to(device)
+            attribution_model = KernelShap(explanation_model)
+            attribute = partial(
+                attribution_model.attribute, n_samples=10000, feature_mask=feature_mask
+            )
         elif args.attribution_name == "random_baseline":
             attribution_model = RandomBaseline(explanation_model)
             attribute = partial(attribution_model.attribute)
@@ -224,10 +252,16 @@ def main():
         for explicand, _ in explicand_dataloader:
             explicand = explicand.to(device)
             explicand.requires_grad = True
+
             attribution = attribute(explicand)
             if args.take_attribution_abs:
                 attribution = attribution.abs()
-            attribution = attribution.sum(dim=1).unsqueeze(1)
+            attribution = attribution.mean(dim=1).unsqueeze(
+                1
+            )  # Combine channel attributions.
+            if args.superpixel_dim > 1:
+                attribution = pixelate(attribution)  # Get superpixel attributions.
+
             insertion_curve, insertion_num_features = image_ablation.evaluate(
                 explicand,
                 attribution,
@@ -265,6 +299,7 @@ def main():
     output_filename = "outputs"
     output_filename += f"_corpus_size={args.corpus_size}"
     output_filename += f"_explicand_size={args.explicand_size}"
+    output_filename += f"_superpixel_dim={args.superpixel_dim}"
     output_filename += ".pkl"
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
