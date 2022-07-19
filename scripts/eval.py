@@ -302,9 +302,6 @@ def main():
         outputs[target]["eval_model_names"] = model_name_list
         outputs[target]["insertion_num_features"] = insertion_num_features
         outputs[target]["deletion_num_features"] = deletion_num_features
-        import pdb
-
-        pdb.set_trace()  # DEBUG.
 
     print("Saving outputs...")
     attribution_name = args.attribution_name
