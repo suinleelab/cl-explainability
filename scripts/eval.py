@@ -171,7 +171,8 @@ def main():
     if args.dataset_name == "imagenette2":
         img_w = 224
         img_h = 224
-        baseline = torch.zeros(1, 3, img_w, img_h).to(device)
+        removal = "blur"
+        get_baseline = transforms.GaussianBlur(21, sigma=5).to(device)
     else:
         raise NotImplementedError(
             f"--dataset-name={args.dataset_name} is not implemented!"
@@ -223,9 +224,11 @@ def main():
         if args.attribution_name == "vanilla_grad":
             attribution_model = Saliency(explanation_model)
             attribute = partial(attribution_model.attribute, abs=False)
+            use_baseline = False
         elif args.attribution_name == "int_grad":
             attribution_model = IntegratedGradients(explanation_model)
             attribute = partial(attribution_model.attribute)
+            use_baseline = True
         elif args.attribution_name == "kernel_shap":
             feature_mask = make_superpixel_map(
                 img_h, img_w, args.superpixel_dim, args.superpixel_dim
@@ -235,9 +238,11 @@ def main():
             attribute = partial(
                 attribution_model.attribute, n_samples=10000, feature_mask=feature_mask
             )
+            use_baseline = True
         elif args.attribution_name == "random_baseline":
             attribution_model = RandomBaseline(explanation_model)
             attribute = partial(attribution_model.attribute)
+            use_baseline = False
         else:
             raise NotImplementedError(
                 f"{args.attribution_name} attribution is not implemented!"
@@ -251,9 +256,13 @@ def main():
 
         for explicand, _ in explicand_dataloader:
             explicand = explicand.to(device)
+            baseline = get_baseline(explicand)
             explicand.requires_grad = True
 
-            attribution = attribute(explicand)
+            if use_baseline:
+                attribution = attribute(explicand, baselines=baseline)
+            else:
+                attribution = attribute(explicand)
             if args.take_attribution_abs:
                 attribution = attribution.abs()
             attribution = attribution.mean(dim=1).unsqueeze(
@@ -300,6 +309,7 @@ def main():
     output_filename += f"_corpus_size={args.corpus_size}"
     output_filename += f"_explicand_size={args.explicand_size}"
     output_filename += f"_superpixel_dim={args.superpixel_dim}"
+    output_filename += f"_removal={removal}"
     output_filename += ".pkl"
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
