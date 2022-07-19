@@ -36,6 +36,6 @@ class CorpusPredAgreement(nn.Module):
             x = (
                 x == 0
             ) * 1.0  # Indicator of whether predictions are pairwise identical.
-            x = x.mean(dim=1).sum()  # Sum of agreement proportions.
+            x = x.mean(dim=1)  # Proportion of agreement for each explicand.
             agreement += x
         return agreement
