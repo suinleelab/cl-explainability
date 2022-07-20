@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
+from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.metrics.ablation import ImageAblation
 from cl_explain.utils import make_superpixel_map
@@ -213,8 +214,11 @@ def main():
         explanation_model = CorpusSimilarity(
             encoder, corpus_dataloader, corpus_batch_size=args.batch_size
         )
+        eval_model_list = [CorpusMajorityProb(encoder, corpus_dataloader)]
+        model_list = [explanation_model] + eval_model_list
+        model_name_list = ["total_similarity", "majority_pred_prob"]
         image_ablation = ImageAblation(
-            explanation_model,
+            model_list,
             img_h,
             img_w,
             superpixel_h=args.superpixel_dim,
@@ -249,8 +253,8 @@ def main():
             )
 
         attribution_list = []
-        insertion_curve_list = []
-        deletion_curve_list = []
+        insertion_curve_list = [[] for _ in range(image_ablation.num_models)]
+        deletion_curve_list = [[] for _ in range(image_ablation.num_models)]
         insertion_num_features = None
         deletion_num_features = None
 
@@ -271,25 +275,31 @@ def main():
             if args.superpixel_dim > 1:
                 attribution = pixelate(attribution)  # Get superpixel attributions.
 
-            insertion_curve, insertion_num_features = image_ablation.evaluate(
+            insertion_curves, insertion_num_features = image_ablation.evaluate(
                 explicand,
                 attribution,
                 baseline,
                 kind="insertion",
             )
-            deletion_curve, deletion_num_features = image_ablation.evaluate(
+            deletion_curves, deletion_num_features = image_ablation.evaluate(
                 explicand,
                 attribution,
                 baseline,
                 kind="deletion",
             )
             attribution_list.append(attribution.detach().cpu())
-            insertion_curve_list.append(insertion_curve.detach().cpu())
-            deletion_curve_list.append(deletion_curve.detach().cpu())
+            for j in range(image_ablation.num_models):
+                insertion_curve_list[j].append(insertion_curves[j].detach().cpu())
+                deletion_curve_list[j].append(deletion_curves[j].detach().cpu())
 
         outputs[target]["attributions"] = torch.cat(attribution_list)
-        outputs[target]["insertion_curves"] = torch.cat(insertion_curve_list)
-        outputs[target]["deletion_curves"] = torch.cat(deletion_curve_list)
+        outputs[target]["insertion_curves"] = [
+            torch.cat(curve) for curve in insertion_curve_list
+        ]
+        outputs[target]["deletion_curves"] = [
+            torch.cat(curve) for curve in deletion_curve_list
+        ]
+        outputs[target]["eval_model_names"] = model_name_list
         outputs[target]["insertion_num_features"] = insertion_num_features
         outputs[target]["deletion_num_features"] = deletion_num_features
 
