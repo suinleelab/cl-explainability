@@ -1,106 +1,27 @@
 """Run explanation methods for encoder representations."""
 
-import argparse
 import os
 import pickle
-import sys
 from functools import partial
 
-import constants
 import torch
 import torchvision.transforms as transforms
 from captum.attr import IntegratedGradients, KernelShap, Saliency
-from experiment_utils import get_device, load_data, load_encoder, make_reproducible
+from experiment_utils import (
+    get_device,
+    get_output_filename,
+    get_result_path,
+    load_data,
+    load_encoder,
+    make_reproducible,
+    parse_args,
+)
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.utils import make_superpixel_map
-
-
-def parse_args():
-    """Parse command line input arguments."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "encoder_name",
-        type=str,
-        choices=["simclr_x1", "simclr_x2", "simclr_x4"],
-        help="name of pre-trained encoder to explain",
-    )
-    parser.add_argument(
-        "attribution_name",
-        type=str,
-        choices=["vanilla_grad", "int_grad", "kernel_shap", "random_baseline"],
-        help="name of feature attribution method to use",
-    )
-    parser.add_argument(
-        "--dataset-name",
-        type=str,
-        default="imagenette2",
-        choices=["imagenette2"],
-        help="name of dataset to use",
-        dest="dataset_name",
-    )
-    parser.add_argument(
-        "--explicand-size",
-        type=int,
-        default=100,
-        help="number of explicands per class",
-        dest="explicand_size",
-    )
-    parser.add_argument(
-        "--corpus-size",
-        type=int,
-        default=100,
-        help="number of corpus examples per class",
-        dest="corpus_size",
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=32,
-        help="batch size for all data loaders",
-        dest="batch_size",
-    )
-    parser.add_argument(
-        "--superpixel-dim",
-        type=int,
-        default=1,
-        help="superpixel width and height for attributions",
-        dest="superpixel_dim",
-    )
-    parser.add_argument(
-        "--blur-strength",
-        type=float,
-        default=5,
-        help="strength of blurring when removing features by blurring",
-        dest="blur_strength",
-    )
-    parser.add_argument(
-        "--use-gpu",
-        action="store_true",
-        help="flag to enable GPU usage",
-        dest="use_gpu",
-    )
-    parser.add_argument(
-        "--gpu-num",
-        type=int,
-        help="if --use-gpu is enabled, controls which GPU to use",
-        dest="gpu_num",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=123,
-        help="seed for random processes",
-        dest="seed",
-    )
-    args = parser.parse_args()
-    print(f"Running {sys.argv[0]} with arguments")
-    for arg in vars(args):
-        print(f"\t{arg}={getattr(args, arg)}")
-    return args
 
 
 def main():
@@ -196,23 +117,18 @@ def main():
         outputs[target]["attributions"] = torch.cat(attribution_list)
 
     print("Saving outputs...")
-    result_path = os.path.join(
-        constants.RESULT_PATH,
-        args.dataset_name,
-        args.encoder_name,
-        args.attribution_name,
-        f"{args.seed}",
+    result_path = get_result_path(
+        args.dataset_name, args.encoder_name, args.attribution_name, args.seed
     )
     os.makedirs(result_path, exist_ok=True)
-    output_filename = "outputs"
-    output_filename += f"_corpus_size={args.corpus_size}"
-    output_filename += f"_explicand_size={args.explicand_size}"
-    if args.attribution_name in constants.SUPERPIXEL_ATTRIBUTION_METHODS:
-        output_filename += f"_superpixel_dim={args.superpixel_dim}"
-    output_filename += f"_removal={removal}"
-    if removal == "blurring":
-        output_filename += f"_blur_strength={args.blur_strength}"
-    output_filename += ".pkl"
+    output_filename = get_output_filename(
+        args.corpus_size,
+        args.explicand_size,
+        args.attribution_name,
+        args.superpixel_dim,
+        removal,
+        args.blur_strength,
+    )
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)
     print("Done!")

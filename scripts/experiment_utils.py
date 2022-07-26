@@ -1,6 +1,8 @@
 """Utility functions."""
+import argparse
 import os
 import random
+import sys
 from typing import List, Optional, Tuple
 
 import constants
@@ -12,6 +14,90 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
+
+
+def parse_args():
+    """Parse command line input arguments."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "encoder_name",
+        type=str,
+        choices=["simclr_x1", "simclr_x2", "simclr_x4"],
+        help="name of pre-trained encoder to explain",
+    )
+    parser.add_argument(
+        "attribution_name",
+        type=str,
+        choices=["vanilla_grad", "int_grad", "kernel_shap", "random_baseline"],
+        help="name of feature attribution method to use",
+    )
+    parser.add_argument(
+        "--dataset-name",
+        type=str,
+        default="imagenette2",
+        choices=["imagenette2"],
+        help="name of dataset to use",
+        dest="dataset_name",
+    )
+    parser.add_argument(
+        "--explicand-size",
+        type=int,
+        default=100,
+        help="number of explicands per class",
+        dest="explicand_size",
+    )
+    parser.add_argument(
+        "--corpus-size",
+        type=int,
+        default=100,
+        help="number of corpus examples per class",
+        dest="corpus_size",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="batch size for all data loaders",
+        dest="batch_size",
+    )
+    parser.add_argument(
+        "--superpixel-dim",
+        type=int,
+        default=1,
+        help="superpixel width and height for attributions",
+        dest="superpixel_dim",
+    )
+    parser.add_argument(
+        "--blur-strength",
+        type=float,
+        default=5,
+        help="strength of blurring when removing features by blurring",
+        dest="blur_strength",
+    )
+    parser.add_argument(
+        "--use-gpu",
+        action="store_true",
+        help="flag to enable GPU usage",
+        dest="use_gpu",
+    )
+    parser.add_argument(
+        "--gpu-num",
+        type=int,
+        help="if --use-gpu is enabled, controls which GPU to use",
+        dest="gpu_num",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=123,
+        help="seed for random processes",
+        dest="seed",
+    )
+    args = parser.parse_args()
+    print(f"Running {sys.argv[0]} with arguments")
+    for arg in vars(args):
+        print(f"\t{arg}={getattr(args, arg)}")
+    return args
 
 
 def get_device(use_gpu: bool, gpu_num: Optional[int] = None) -> str:
@@ -82,3 +168,37 @@ def load_encoder(encoder_name: str) -> nn.Module:
     else:
         _encoder_not_implemented_error(encoder_name)
     return encoder
+
+
+def get_result_path(
+    dataset_name: str, encoder_name: str, attribution_name: str, seed: int
+) -> str:
+    """Generate path for storing results."""
+    return os.path.join(
+        constants.RESULT_PATH,
+        dataset_name,
+        encoder_name,
+        attribution_name,
+        f"{seed}",
+    )
+
+
+def get_output_filename(
+    corpus_size: int,
+    explicand_size: int,
+    attribution_name: str,
+    superpixel_dim: int,
+    removal: str,
+    blur_strength: float,
+) -> str:
+    """Get output filename for saving attribution results."""
+    output_filename = "outputs"
+    output_filename += f"_corpus_size={corpus_size}"
+    output_filename += f"_explicand_size={explicand_size}"
+    if attribution_name in constants.SUPERPIXEL_ATTRIBUTION_METHODS:
+        output_filename += f"_superpixel_dim={superpixel_dim}"
+    output_filename += f"_removal={removal}"
+    if removal == "blurring":
+        output_filename += f"_blur_strength={blur_strength}"
+    output_filename += ".pkl"
+    return output_filename
