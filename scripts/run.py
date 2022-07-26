@@ -25,8 +25,8 @@ def main():
     )  # Always use a batch size of 32 for efficient evaluation.
     eval_command_args += f" --eval-superpixel-dim {args.superpixel_dim}"
     os.system("python scripts/attribute.py " + command_args)
-    os.system("python scripts/eval.py" + eval_command_args)
-    os.system("python scripts/eval.py" + eval_command_args + " --take-attribution-abs")
+    os.system("python scripts/eval.py " + eval_command_args)
+    os.system("python scripts/eval.py " + eval_command_args + " --take-attribution-abs")
 
 
 if __name__ == "__main__":
