@@ -36,7 +36,7 @@ def main():
     encoder.to(device)
     print("Loading dataset...")
     dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
-    img_w, img_h, removal = get_image_dataset_meta(args.dataset_name)
+    img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
     else:
