@@ -70,7 +70,7 @@ def parse_args(evaluate: bool = False):
     parser.add_argument(
         "--blur-strength",
         type=float,
-        default=5,
+        default=5.0,
         help="strength of blurring when removing features by blurring",
         dest="blur_strength",
     )
@@ -213,7 +213,7 @@ def get_output_filename(
         output_filename += f"_superpixel_dim={superpixel_dim}"
     output_filename += f"_removal={removal}"
     if removal == "blurring":
-        output_filename += f"_blur_strength={blur_strength}"
+        output_filename += f"_blur_strength={blur_strength:.1f}"
     output_filename += ".pkl"
     return output_filename
 
