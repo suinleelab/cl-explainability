@@ -153,7 +153,7 @@ def main():
         result_filename += "_abs"
     result_filename += ".pkl"
     with open(os.path.join(result_path, result_filename), "wb") as handle:
-        pickle.dump(outputs, handle)
+        pickle.dump(results, handle)
     print("Done!")
 
 
