@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 from captum.attr import IntegratedGradients, KernelShap, Saliency
 from experiment_utils import (
     get_device,
+    get_image_dataset_meta,
     get_output_filename,
     get_result_path,
     load_data,
@@ -35,15 +36,11 @@ def main():
     encoder.to(device)
     print("Loading dataset...")
     dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
-    if args.dataset_name == "imagenette2":
-        img_w = 224
-        img_h = 224
-        removal = "blurring"
+    img_w, img_h, removal = get_image_dataset_meta(args.dataset_name)
+    if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
     else:
-        raise NotImplementedError(
-            f"--dataset-name={args.dataset_name} is not implemented!"
-        )
+        raise NotImplementedError(f"removal={removal} is not implemented!")
 
     labels = []
     for _, label in dataloader:

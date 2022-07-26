@@ -202,3 +202,14 @@ def get_output_filename(
         output_filename += f"_blur_strength={blur_strength}"
     output_filename += ".pkl"
     return output_filename
+
+
+def get_image_dataset_meta(dataset_name: str) -> Tuple[int, int, str]:
+    """Get meta information about an image dataset."""
+    if dataset_name == "imagenette2":
+        img_w = 224
+        img_h = 224
+        removal = "blurring"  # Appropriate pixel removal operation.
+    else:
+        raise NotImplementedError(f"dataset={dataset_name} is not implemented!")
+    return img_w, img_h, removal
