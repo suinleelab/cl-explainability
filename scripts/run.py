@@ -20,8 +20,10 @@ def main():
         command_args += " --use-gpu"
     command_args += f" --gpu-num {args.gpu_num}"
     command_args += f" --seed {args.seed}"
-    eval_command_args = command_args + f" --eval-superpixel-dim {args.superpixel_dim}"
-
+    eval_command_args = command_args.replace(
+        f" --batch-size {args.batch_size}", " --batch-size 32"
+    )  # Always use a batch size of 32 for efficient evaluation.
+    eval_command_args += f" --eval-superpixel-dim {args.superpixel_dim}"
     os.system("python scripts/attribute.py " + command_args)
     os.system("python scripts/eval.py" + eval_command_args)
     os.system("python scripts/eval.py" + eval_command_args + " --take-attribution-abs")
