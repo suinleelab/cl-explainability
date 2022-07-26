@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 
 
-def parse_args():
+def parse_args(evaluate: bool = False):
     """Parse command line input arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -93,6 +93,20 @@ def parse_args():
         help="seed for random processes",
         dest="seed",
     )
+    if evaluate:
+        parser.add_argument(
+            "--take-attribution-abs",
+            action="store_true",
+            help="flag to take absolute value of attributions during evaluation",
+            dest="take_attribution_abs",
+        )
+        parser.add_argument(
+            "--eval-superpixel-dim",
+            type=int,
+            default=1,
+            help="superpixel width and height for removing pixels during evaluation",
+            dest="eval_superpixel_dim",
+        )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")
     for arg in vars(args):
