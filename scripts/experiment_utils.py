@@ -64,7 +64,7 @@ def parse_args():
         "--superpixel-dim",
         type=int,
         default=1,
-        help="superpixel width and height for attributions",
+        help="superpixel width and height for removing image pixels",
         dest="superpixel_dim",
     )
     parser.add_argument(
