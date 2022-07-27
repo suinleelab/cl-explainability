@@ -49,15 +49,20 @@ def main():
     unique_labels = labels.unique().numpy()
     outputs = {target: {"source_label": class_map[target]} for target in unique_labels}
 
-    print("Computing feature attributions for each class...")
-    for target in tqdm(unique_labels):
-        idx = (labels == target).nonzero().flatten()
-        idx = idx[torch.randperm(idx.size(0))]
-
-        explicand_idx = idx[: args.explicand_size]
-        corpus_idx = idx[args.explicand_size : (args.explicand_size + args.corpus_size)]
+    for target in unique_labels:
+        target_idx = (labels == target).nonzero().flatten()
+        target_idx = target_idx[torch.randperm(target_idx.size(0))]
+        explicand_idx = target_idx[: args.explicand_size]
+        corpus_idx = target_idx[
+            args.explicand_size : (args.explicand_size + args.corpus_size)
+        ]
         outputs[target]["explicand_idx"] = explicand_idx
         outputs[target]["corpus_idx"] = corpus_idx
+
+    print("Computing feature attributions for each class...")
+    for target in tqdm(unique_labels):
+        explicand_idx = outputs[target]["explicand_idx"]
+        corpus_idx = outputs[target]["corpus_idx"]
 
         explicand_dataloader = DataLoader(
             Subset(dataset, indices=explicand_idx),
