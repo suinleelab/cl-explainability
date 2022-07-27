@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 class CorpusSimilarity(nn.Module):
     """
-    Module class for computing an explicand's total similarity score with a corpus.
+    Module class for computing an explicand's average similarity score with a corpus.
 
     Args:
     ----
