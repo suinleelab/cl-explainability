@@ -52,12 +52,10 @@ def main():
     for target in unique_labels:
         target_idx = (labels == target).nonzero().flatten()
         target_idx = target_idx[torch.randperm(target_idx.size(0))]
-        explicand_idx = target_idx[: args.explicand_size]
-        corpus_idx = target_idx[
+        outputs[target]["explicand_idx"] = target_idx[: args.explicand_size]
+        outputs[target]["corpus_idx"] = target_idx[
             args.explicand_size : (args.explicand_size + args.corpus_size)
         ]
-        outputs[target]["explicand_idx"] = explicand_idx
-        outputs[target]["corpus_idx"] = corpus_idx
 
     print("Computing feature attributions for each class...")
     for target in tqdm(unique_labels):
