@@ -84,9 +84,7 @@ def main():
         )
 
         model_list = [
-            CorpusSimilarity(
-                encoder, corpus_dataloader, corpus_batch_size=args.batch_size
-            ),
+            CorpusSimilarity(encoder, corpus_dataloader, batch_size=args.batch_size),
             CorpusMajorityProb(encoder, corpus_dataloader),
         ]
         model_name_list = ["total_similarity", "majority_pred_prob"]

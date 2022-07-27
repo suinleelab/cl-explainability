@@ -71,7 +71,7 @@ def main():
         )
 
         explanation_model = CorpusSimilarity(
-            encoder, corpus_dataloader, corpus_batch_size=args.batch_size
+            encoder, corpus_dataloader, batch_size=args.batch_size
         )
 
         if args.attribution_name == "vanilla_grad":
