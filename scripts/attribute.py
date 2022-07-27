@@ -21,6 +21,9 @@ from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from cl_explain.attributions.random_baseline import RandomBaseline
+from cl_explain.explanations.contrastive_corpus_similarity import (
+    ContrastiveCorpusSimilarity,
+)
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.utils import make_superpixel_map
 
@@ -48,34 +51,55 @@ def main():
     labels = torch.cat(labels)
     unique_labels = labels.unique().numpy()
     outputs = {target: {"source_label": class_map[target]} for target in unique_labels}
+    all_idx = torch.arange(labels.size(0))
 
     for target in unique_labels:
         target_idx = (labels == target).nonzero().flatten()
         target_idx = target_idx[torch.randperm(target_idx.size(0))]
-        outputs[target]["explicand_idx"] = target_idx[: args.explicand_size]
-        outputs[target]["corpus_idx"] = target_idx[
+        explicand_idx = target_idx[: args.explicand_size]
+        corpus_idx = target_idx[
             args.explicand_size : (args.explicand_size + args.corpus_size)
         ]
+        outputs[target]["explicand_idx"] = explicand_idx
+        outputs[target]["corpus_idx"] = corpus_idx
+        if args.contrast:
+            leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
+                set(corpus_idx.numpy())
+            )
+            leftover_idx = torch.LongTensor(list(leftover_idx))
+            leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
+            outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")
     for target in tqdm(unique_labels):
-        explicand_idx = outputs[target]["explicand_idx"]
-        corpus_idx = outputs[target]["corpus_idx"]
-
         explicand_dataloader = DataLoader(
-            Subset(dataset, indices=explicand_idx),
+            Subset(dataset, indices=outputs[target]["explicand_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
         corpus_dataloader = DataLoader(
-            Subset(dataset, indices=corpus_idx),
+            Subset(dataset, indices=outputs[target]["corpus_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
-
-        explanation_model = CorpusSimilarity(
-            encoder, corpus_dataloader, batch_size=args.batch_size
-        )
+        if args.contrast:
+            foil_dataloader = DataLoader(
+                Subset(dataset, indices=outputs[target]["foil_idx"]),
+                batch_size=args.batch_size,
+                shuffle=False,
+            )
+            explanation_model = ContrastiveCorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                foil_dataloader=foil_dataloader,
+                batch_size=args.batch_size,
+            )
+        else:
+            explanation_model = CorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                batch_size=args.batch_size,
+            )
 
         if args.attribution_name == "vanilla_grad":
             attribution_model = Saliency(explanation_model)
@@ -118,16 +142,22 @@ def main():
 
     print("Saving outputs...")
     result_path = get_result_path(
-        args.dataset_name, args.encoder_name, args.attribution_name, args.seed
+        dataset_name=args.dataset_name,
+        encoder_name=args.encoder_name,
+        attribution_name=args.attribution_name,
+        seed=args.seed,
+        contrast=args.contrast,
     )
     os.makedirs(result_path, exist_ok=True)
     output_filename = get_output_filename(
-        args.corpus_size,
-        args.explicand_size,
-        args.attribution_name,
-        args.superpixel_dim,
-        removal,
-        args.blur_strength,
+        corpus_size=args.corpus_size,
+        contrast=args.contrast,
+        foil_size=args.foil_size,
+        explicand_size=args.explicand_size,
+        attribution_name=args.attribution_name,
+        superpixel_dim=args.superpixel_dim,
+        removal=removal,
+        blur_strength=args.blur_strength,
     )
     with open(os.path.join(result_path, output_filename), "wb") as handle:
         pickle.dump(outputs, handle)

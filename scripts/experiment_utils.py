@@ -54,6 +54,19 @@ def parse_args(evaluate: bool = False):
         dest="corpus_size",
     )
     parser.add_argument(
+        "--contrast",
+        action="store_true",
+        help="flag to use contrastive explanations with a corpus and foil set",
+        dest="contrast",
+    )
+    parser.add_argument(
+        "--foil-size",
+        type=int,
+        default=100,
+        help="number of foil examples",
+        dest="foil_size",
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=32,
@@ -185,9 +198,15 @@ def load_encoder(encoder_name: str) -> nn.Module:
 
 
 def get_result_path(
-    dataset_name: str, encoder_name: str, attribution_name: str, seed: int
+    dataset_name: str,
+    encoder_name: str,
+    attribution_name: str,
+    seed: int,
+    contrast: bool,
 ) -> str:
     """Generate path for storing results."""
+    if contrast:
+        attribution_name = "contrastive_" + attribution_name
     return os.path.join(
         constants.RESULT_PATH,
         dataset_name,
@@ -199,6 +218,8 @@ def get_result_path(
 
 def get_output_filename(
     corpus_size: int,
+    contrast: bool,
+    foil_size: int,
     explicand_size: int,
     attribution_name: str,
     superpixel_dim: int,
@@ -208,6 +229,8 @@ def get_output_filename(
     """Get output filename for saving attribution results."""
     output_filename = "outputs"
     output_filename += f"_corpus_size={corpus_size}"
+    if contrast:
+        output_filename += f"_foil_size={foil_size}"
     output_filename += f"_explicand_size={explicand_size}"
     if attribution_name in constants.SUPERPIXEL_ATTRIBUTION_METHODS:
         output_filename += f"_superpixel_dim={superpixel_dim}"
