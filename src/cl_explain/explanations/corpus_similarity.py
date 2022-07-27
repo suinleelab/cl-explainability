@@ -12,8 +12,7 @@ class CorpusSimilarity(nn.Module):
     Args:
     ----
         encoder: Encoder module to explain.
-        corpus_dataloader: Data loader of corpus examples, with shape (corpus_size, *),
-            where * indicates the input dimensions of `encoder`.
+        corpus_dataloader: Data loader of corpus examples to be encoded by `encoder`.
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
         sigma2: The variance parameter for the Gaussian similarity kernel.
