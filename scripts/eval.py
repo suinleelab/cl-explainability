@@ -42,15 +42,21 @@ def main():
         raise NotImplementedError(f"removal={removal} is not implemented!")
 
     result_path = get_result_path(
-        args.dataset_name, args.encoder_name, args.attribution_name, args.seed
+        dataset_name=args.dataset_name,
+        encoder_name=args.encoder_name,
+        attribution_name=args.attribution_name,
+        seed=args.seed,
+        contrast=args.contrast,
     )
     output_filename = get_output_filename(
-        args.corpus_size,
-        args.explicand_size,
-        args.attribution_name,
-        args.superpixel_dim,
-        removal,
-        args.blur_strength,
+        corpus_size=args.corpus_size,
+        contrast=args.contrast,
+        foil_size=args.foil_size,
+        explicand_size=args.explicand_size,
+        attribution_name=args.attribution_name,
+        superpixel_dim=args.superpixel_dim,
+        removal=removal,
+        blur_strength=args.blur_strength,
     )
     with open(os.path.join(result_path, output_filename), "rb") as handle:
         outputs = pickle.load(handle)
@@ -84,12 +90,10 @@ def main():
         )
 
         model_list = [
-            CorpusSimilarity(
-                encoder, corpus_dataloader, corpus_batch_size=args.batch_size
-            ),
+            CorpusSimilarity(encoder, corpus_dataloader, batch_size=args.batch_size),
             CorpusMajorityProb(encoder, corpus_dataloader),
         ]
-        model_name_list = ["total_similarity", "majority_pred_prob"]
+        model_name_list = ["average_similarity", "majority_pred_prob"]
         image_ablation = ImageAblation(
             model_list,
             img_h,
