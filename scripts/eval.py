@@ -22,6 +22,7 @@ from tqdm import tqdm
 from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusSimilarity,
 )
+from cl_explain.explanations.corpus_distance import CorpusDistance
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.metrics.ablation import ImageAblation
@@ -39,6 +40,9 @@ def main():
     print("Loading dataset...")
     val_dataset, _, _ = load_data(
         dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
+    )
+    _, train_dataloader, _ = load_data(
+        dataset_name=args.dataset_name, subset="train", batch_size=args.batch_size
     )
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
@@ -115,11 +119,17 @@ def main():
                 batch_size=args.batch_size,
             ),
             CorpusMajorityProb(encoder=encoder, corpus_dataloader=corpus_dataloader),
+            CorpusDistance(
+                encoder=encoder,
+                corpus_dataloader=train_dataloader,
+                batch_size=args.batch_size,
+            ),
         ]
         model_name_list = [
             "similarity",
             "contrastive_similarity",
             "majority_pred_prob",
+            "training_set_distance",
         ]
         image_ablation = ImageAblation(
             model_list,
