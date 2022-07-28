@@ -154,8 +154,8 @@ def main():
     result_path = get_result_path(
         dataset_name=args.dataset_name,
         encoder_name=args.encoder_name,
-        attribution_name=args.attribution_name,
         explanation_name=args.explanation_name,
+        attribution_name=args.attribution_name,
         seed=args.seed,
     )
     os.makedirs(result_path, exist_ok=True)

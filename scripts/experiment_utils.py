@@ -26,18 +26,16 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         help="name of pre-trained encoder to explain",
     )
     parser.add_argument(
+        "explanation_name",
+        type=str,
+        choices=["self_weighted", "corpus", "contrastive"],
+        help="explanation behavior for feature attribution methods",
+    )
+    parser.add_argument(
         "attribution_name",
         type=str,
         choices=["vanilla_grad", "int_grad", "kernel_shap", "random_baseline"],
         help="name of feature attribution method to use",
-    )
-    parser.add_argument(
-        "--explanation-name",
-        type=str,
-        default="contrastive",
-        choices=["self_weighted", "corpus", "contrastive"],
-        help="explanation behavior for feature attribution methods",
-        dest="explanation_name",
     )
     parser.add_argument(
         "--dataset-name",
@@ -220,8 +218,8 @@ def load_encoder(encoder_name: str) -> nn.Module:
 def get_result_path(
     dataset_name: str,
     encoder_name: str,
-    attribution_name: str,
     explanation_name: str,
+    attribution_name: str,
     seed: int,
 ) -> str:
     """Generate path for storing results."""
