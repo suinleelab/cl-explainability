@@ -120,6 +120,13 @@ def parse_args(evaluate: bool = False):
             help="superpixel width and height for removing pixels during evaluation",
             dest="eval_superpixel_dim",
         )
+        parser.add_argument(
+            "--eval-foil-size",
+            type=int,
+            default=500,
+            help="number of foil samples for evaluating contrastive metrics",
+            dest="eval_foil_size",
+        )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")
     for arg in vars(args):

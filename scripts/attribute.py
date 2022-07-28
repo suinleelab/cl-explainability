@@ -62,12 +62,13 @@ def main():
         ]
         outputs[target]["explicand_idx"] = explicand_idx
         outputs[target]["corpus_idx"] = corpus_idx
+        leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
+            set(corpus_idx.numpy())
+        )
+        leftover_idx = torch.LongTensor(list(leftover_idx))
+        leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
+        outputs[target]["leftover_idx"] = leftover_idx
         if args.contrast:
-            leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
-                set(corpus_idx.numpy())
-            )
-            leftover_idx = torch.LongTensor(list(leftover_idx))
-            leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
             outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")

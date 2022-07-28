@@ -19,6 +19,9 @@ from experiment_utils import (
 from torch.utils.data import DataLoader, Subset, TensorDataset
 from tqdm import tqdm
 
+from cl_explain.explanations.contrastive_corpus_similarity import (
+    ContrastiveCorpusSimilarity,
+)
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.metrics.ablation import ImageAblation
@@ -71,10 +74,8 @@ def main():
     print("Evaluating feature attributions for each class...")
     results = {target: {} for target in outputs.keys()}
     for target, target_output in tqdm(outputs.items()):
-        explicand_idx = target_output["explicand_idx"]
-        corpus_idx = target_output["corpus_idx"]
         explicand_dataloader = DataLoader(
-            Subset(dataset, indices=explicand_idx),
+            Subset(dataset, indices=target_output["explicand_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
@@ -84,16 +85,40 @@ def main():
             shuffle=False,
         )
         corpus_dataloader = DataLoader(
-            Subset(dataset, indices=corpus_idx),
+            Subset(dataset, indices=target_output["corpus_idx"]),
+            batch_size=args.batch_size,
+            shuffle=False,
+        )
+        leftover_idx = target_output["leftover_idx"]
+        # Shuffle indices to ensure fair comparison between contrastive vs.
+        # non-contrastive explanation methods. Otherwise contrastive methods would use
+        # the same foil during attribution and evaluation.
+        leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
+        eval_foil_dataloader = DataLoader(
+            Subset(dataset, indices=leftover_idx[: args.eval_foil_size]),
             batch_size=args.batch_size,
             shuffle=False,
         )
 
         model_list = [
-            CorpusSimilarity(encoder, corpus_dataloader, batch_size=args.batch_size),
-            CorpusMajorityProb(encoder, corpus_dataloader),
+            CorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                batch_size=args.batch_size,
+            ),
+            ContrastiveCorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                foil_dataloader=eval_foil_dataloader,
+                batch_size=args.batch_size,
+            ),
+            CorpusMajorityProb(encoder=encoder, corpus_dataloader=corpus_dataloader),
         ]
-        model_name_list = ["average_similarity", "majority_pred_prob"]
+        model_name_list = [
+            "similarity",
+            "contrastive_similarity",
+            "majority_pred_prob",
+        ]
         image_ablation = ImageAblation(
             model_list,
             img_h,
@@ -153,6 +178,7 @@ def main():
         ".pkl", ""
     )
     result_filename += f"_eval_superpixel_dim={args.eval_superpixel_dim}"
+    result_filename += f"_eval_foil_size={args.eval_foil_size}"
     if args.take_attribution_abs:
         result_filename += "_abs"
     result_filename += ".pkl"
