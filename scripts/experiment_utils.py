@@ -155,11 +155,13 @@ def make_reproducible(seed: int = 123) -> None:
 
 
 def load_data(
-    dataset_name: str, batch_size: int
+    dataset_name: str,
+    subset: str,
+    batch_size: int,
 ) -> Tuple[Dataset, DataLoader, List[str]]:
     """Load data."""
     if dataset_name == "imagenette2":
-        dataset_path = os.path.join(constants.DATA_PATH, dataset_name, "val")
+        dataset_path = os.path.join(constants.DATA_PATH, dataset_name, subset)
         dataset = torchvision.datasets.ImageFolder(
             dataset_path,
             transform=transforms.Compose(

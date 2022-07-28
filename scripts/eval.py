@@ -37,7 +37,9 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
-    dataset, _, _ = load_data(args.dataset_name, args.batch_size)
+    val_dataset, _, _ = load_data(
+        dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
+    )
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
@@ -75,7 +77,7 @@ def main():
     results = {target: {} for target in outputs.keys()}
     for target, target_output in tqdm(outputs.items()):
         explicand_dataloader = DataLoader(
-            Subset(dataset, indices=target_output["explicand_idx"]),
+            Subset(val_dataset, indices=target_output["explicand_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
@@ -85,7 +87,7 @@ def main():
             shuffle=False,
         )
         corpus_dataloader = DataLoader(
-            Subset(dataset, indices=target_output["corpus_idx"]),
+            Subset(val_dataset, indices=target_output["corpus_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
@@ -95,7 +97,7 @@ def main():
         # the same foil during attribution and evaluation.
         leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
         eval_foil_dataloader = DataLoader(
-            Subset(dataset, indices=leftover_idx[: args.eval_foil_size]),
+            Subset(val_dataset, indices=leftover_idx[: args.eval_foil_size]),
             batch_size=args.batch_size,
             shuffle=False,
         )
