@@ -25,6 +25,7 @@ from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusSimilarity,
 )
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
+from cl_explain.explanations.self_weighted_score import SelfWeightedScore
 from cl_explain.utils import make_superpixel_map
 
 
@@ -70,7 +71,7 @@ def main():
         leftover_idx = torch.LongTensor(list(leftover_idx))
         leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
         outputs[target]["leftover_idx"] = leftover_idx
-        if args.contrast:
+        if args.explanation_name == "contrastive":
             outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")
@@ -85,7 +86,15 @@ def main():
             batch_size=args.batch_size,
             shuffle=False,
         )
-        if args.contrast:
+        if args.explanation_name == "self_weighted":
+            explanation_model = SelfWeightedScore(encoder=encoder)
+        elif args.explanation_name == "corpus":
+            explanation_model = CorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                batch_size=args.batch_size,
+            )
+        elif args.explanation_name == "contrastive":
             foil_dataloader = DataLoader(
                 Subset(dataset, indices=outputs[target]["foil_idx"]),
                 batch_size=args.batch_size,
@@ -98,10 +107,8 @@ def main():
                 batch_size=args.batch_size,
             )
         else:
-            explanation_model = CorpusSimilarity(
-                encoder=encoder,
-                corpus_dataloader=corpus_dataloader,
-                batch_size=args.batch_size,
+            raise NotImplementedError(
+                f"{args.explanation_name} explanation is not implemented!"
             )
 
         if args.attribution_name == "vanilla_grad":
@@ -148,13 +155,13 @@ def main():
         dataset_name=args.dataset_name,
         encoder_name=args.encoder_name,
         attribution_name=args.attribution_name,
+        explanation_name=args.explanation_name,
         seed=args.seed,
-        contrast=args.contrast,
     )
     os.makedirs(result_path, exist_ok=True)
     output_filename = get_output_filename(
         corpus_size=args.corpus_size,
-        contrast=args.contrast,
+        explanation_name=args.explanation_name,
         foil_size=args.foil_size,
         explicand_size=args.explicand_size,
         attribution_name=args.attribution_name,

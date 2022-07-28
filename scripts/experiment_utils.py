@@ -32,6 +32,14 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         help="name of feature attribution method to use",
     )
     parser.add_argument(
+        "--explanation-name",
+        type=str,
+        default="contrastive",
+        choices=["self_weighted", "corpus", "contrastive"],
+        help="explanation behavior for feature attribution methods",
+        dest="explanation_name",
+    )
+    parser.add_argument(
         "--dataset-name",
         type=str,
         default="imagenette2",
@@ -52,12 +60,6 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         default=100,
         help="number of corpus examples per class",
         dest="corpus_size",
-    )
-    parser.add_argument(
-        "--contrast",
-        action="store_true",
-        help="flag to use contrastive explanations with a corpus and foil set",
-        dest="contrast",
     )
     parser.add_argument(
         "--foil-size",
@@ -219,24 +221,23 @@ def get_result_path(
     dataset_name: str,
     encoder_name: str,
     attribution_name: str,
+    explanation_name: str,
     seed: int,
-    contrast: bool,
 ) -> str:
     """Generate path for storing results."""
-    if contrast:
-        attribution_name = "contrastive_" + attribution_name
+    method_name = explanation_name + "_" + attribution_name
     return os.path.join(
         constants.RESULT_PATH,
         dataset_name,
         encoder_name,
-        attribution_name,
+        method_name,
         f"{seed}",
     )
 
 
 def get_output_filename(
     corpus_size: int,
-    contrast: bool,
+    explanation_name: str,
     foil_size: int,
     explicand_size: int,
     attribution_name: str,
@@ -246,10 +247,11 @@ def get_output_filename(
 ) -> str:
     """Get output filename for saving attribution results."""
     output_filename = "outputs"
-    output_filename += f"_corpus_size={corpus_size}"
-    if contrast:
-        output_filename += f"_foil_size={foil_size}"
-    output_filename += f"_explicand_size={explicand_size}"
+    if explanation_name in ["corpus", "contrastive"]:
+        output_filename += f"_corpus_size={corpus_size}"
+        if explanation_name == "contrastive":
+            output_filename += f"_foil_size={foil_size}"
+        output_filename += f"_explicand_size={explicand_size}"
     if attribution_name in constants.SUPERPIXEL_ATTRIBUTION_METHODS:
         output_filename += f"_superpixel_dim={superpixel_dim}"
     output_filename += f"_removal={removal}"

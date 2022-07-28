@@ -10,11 +10,10 @@ def main():
     args = parse_args(evaluate=True, meta=True)
     command_args = args.encoder_name
     command_args += f" {args.attribution_name}"
+    command_args += f" --explanation-name {args.explanation_name}"
     command_args += f" --dataset-name {args.dataset_name}"
     command_args += f" --explicand-size {args.explicand_size}"
     command_args += f" --corpus-size {args.corpus_size}"
-    if args.contrast:
-        command_args += " --contrast"
     command_args += f" --foil-size {args.foil_size}"
     command_args += f" --batch-size {args.batch_size}"
     command_args += f" --superpixel-dim {args.superpixel_dim}"

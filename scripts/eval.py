@@ -54,12 +54,12 @@ def main():
         dataset_name=args.dataset_name,
         encoder_name=args.encoder_name,
         attribution_name=args.attribution_name,
+        explanation_name=args.explanation_name,
         seed=args.seed,
-        contrast=args.contrast,
     )
     output_filename = get_output_filename(
         corpus_size=args.corpus_size,
-        contrast=args.contrast,
+        explanation_name=args.explanation_name,
         foil_size=args.foil_size,
         explicand_size=args.explicand_size,
         attribution_name=args.attribution_name,
