@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 
 
-def parse_args(evaluate: bool = False):
+def parse_args(evaluate: bool = False, meta: bool = False):
     """Parse command line input arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -126,6 +126,15 @@ def parse_args(evaluate: bool = False):
             default=500,
             help="number of foil samples for evaluating contrastive metrics",
             dest="eval_foil_size",
+        )
+    if meta:
+        parser.add_argument(
+            "--mode",
+            type=str,
+            default="attribute_and_eval",
+            choices=["attribute_only", "eval_only", "attribute_and_eval"],
+            help="for meta script, whether to run attribute.py and or eval.py",
+            dest="mode",
         )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")

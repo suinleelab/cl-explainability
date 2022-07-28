@@ -7,7 +7,7 @@ from experiment_utils import parse_args
 
 def main():
     """Main function."""
-    args = parse_args(evaluate=True)
+    args = parse_args(evaluate=True, meta=True)
     command_args = args.encoder_name
     command_args += f" {args.attribution_name}"
     command_args += f" --dataset-name {args.dataset_name}"
@@ -24,13 +24,28 @@ def main():
     command_args += f" --gpu-num {args.gpu_num}"
     command_args += f" --seed {args.seed}"
     eval_command_args = command_args.replace(
-        f" --batch-size {args.batch_size}", " --batch-size 32"
-    )  # Always use a batch size of 32 for efficient evaluation.
+        f" --batch-size {args.batch_size}", " --batch-size 50"
+    )  # Always use a batch size of 50 for efficient evaluation.
     eval_command_args += f" --eval-superpixel-dim {args.eval_superpixel_dim}"
     eval_command_args += f" --eval-foil-size {args.eval_foil_size}"
-    os.system("python scripts/attribute.py " + command_args)
-    os.system("python scripts/eval.py " + eval_command_args)
-    os.system("python scripts/eval.py " + eval_command_args + " --take-attribution-abs")
+
+    if args.mode == "attribute_only":
+        run_attribution = True
+        run_eval = False
+    elif args.mode == "eval_only":
+        run_attribution = False
+        run_eval = True
+    else:
+        run_attribution = True
+        run_eval = True
+
+    if run_attribution:
+        os.system("python scripts/attribute.py " + command_args)
+    if run_eval:
+        os.system("python scripts/eval.py " + eval_command_args)
+        os.system(
+            "python scripts/eval.py " + eval_command_args + " --take-attribution-abs"
+        )
 
 
 if __name__ == "__main__":
