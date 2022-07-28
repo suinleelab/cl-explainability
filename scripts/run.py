@@ -24,8 +24,8 @@ def main():
     command_args += f" --gpu-num {args.gpu_num}"
     command_args += f" --seed {args.seed}"
     eval_command_args = command_args.replace(
-        f" --batch-size {args.batch_size}", " --batch-size 50"
-    )  # Always use a batch size of 50 for efficient evaluation.
+        f" --batch-size {args.batch_size}", " --batch-size 32"
+    )  # Always use a batch size of 32 for efficient evaluation.
     eval_command_args += f" --eval-superpixel-dim {args.eval_superpixel_dim}"
     eval_command_args += f" --eval-foil-size {args.eval_foil_size}"
 
