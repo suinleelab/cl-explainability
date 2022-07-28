@@ -62,7 +62,7 @@ def parse_args(evaluate: bool = False):
     parser.add_argument(
         "--foil-size",
         type=int,
-        default=100,
+        default=500,
         help="number of foil examples",
         dest="foil_size",
     )
