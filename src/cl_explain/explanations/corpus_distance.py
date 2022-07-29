@@ -1,4 +1,4 @@
-"""Explanation behaviors based on an explicand representation similarity to a corpus."""
+"""Explanation behaviors based on an explicand's representation distance to a corpus."""
 
 import torch
 import torch.nn as nn
@@ -7,9 +7,9 @@ from torch.utils.data import DataLoader
 from cl_explain.explanations.corpus_based_explanation import CorpusBasedExplanation
 
 
-class CorpusSimilarity(CorpusBasedExplanation):
+class CorpusDistance(CorpusBasedExplanation):
     """
-    Module class for computing an explicand's average similarity score with a corpus.
+    Module class for computing an explicand's average distance to a corpus.
 
     Args:
     ----
@@ -17,7 +17,6 @@ class CorpusSimilarity(CorpusBasedExplanation):
         corpus_dataloader: Data loader of corpus examples to be encoded by `encoder`.
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
-        sigma2: The variance parameter for the Gaussian similarity kernel.
     """
 
     def __init__(
@@ -25,28 +24,24 @@ class CorpusSimilarity(CorpusBasedExplanation):
         encoder: nn.Module,
         corpus_dataloader: DataLoader,
         batch_size: int = 64,
-        sigma2: float = 1.0,
     ) -> None:
         super().__init__(
             encoder=encoder, corpus_dataloader=corpus_dataloader, batch_size=batch_size
         )
-        self.sigma2 = sigma2
 
     def forward(self, explicand: torch.Tensor) -> torch.Tensor:
-        return self._compute_similarity(
+        return self._compute_distance(
             explicand, self.corpus_rep_dataloader, self.corpus_size
         )
 
-    def _compute_similarity(
+    def _compute_distance(
         self, explicand: torch.Tensor, rep_dataloader: DataLoader, rep_data_size: int
     ) -> torch.Tensor:
         explicand_rep = self.encoder(explicand)
-        similarity = 0
+        distance = 0
         for (x,) in rep_dataloader:
             x = x.to(explicand_rep.device)
-            x = -self._compute_norm(explicand_rep, x) ** 2
-            x /= self.rep_dim  # Normalize by embedding dimension to avoid large values.
-            x = torch.exp(x / (2 * self.sigma2))
+            x = self._compute_norm(explicand_rep, x) ** 2
             x = x.sum(dim=1)
-            similarity += x
-        return similarity / rep_data_size  # Average over number of comparisons.
+            distance += x
+        return distance / rep_data_size

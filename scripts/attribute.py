@@ -38,7 +38,9 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
-    dataset, dataloader, class_map = load_data(args.dataset_name, args.batch_size)
+    dataset, dataloader, class_map = load_data(
+        dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
+    )
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
@@ -62,12 +64,13 @@ def main():
         ]
         outputs[target]["explicand_idx"] = explicand_idx
         outputs[target]["corpus_idx"] = corpus_idx
+        leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
+            set(corpus_idx.numpy())
+        )
+        leftover_idx = torch.LongTensor(list(leftover_idx))
+        leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
+        outputs[target]["leftover_idx"] = leftover_idx
         if args.contrast:
-            leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
-                set(corpus_idx.numpy())
-            )
-            leftover_idx = torch.LongTensor(list(leftover_idx))
-            leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
             outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")

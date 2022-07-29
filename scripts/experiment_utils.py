@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 
 
-def parse_args(evaluate: bool = False):
+def parse_args(evaluate: bool = False, meta: bool = False):
     """Parse command line input arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -120,6 +120,22 @@ def parse_args(evaluate: bool = False):
             help="superpixel width and height for removing pixels during evaluation",
             dest="eval_superpixel_dim",
         )
+        parser.add_argument(
+            "--eval-foil-size",
+            type=int,
+            default=500,
+            help="number of foil samples for evaluating contrastive metrics",
+            dest="eval_foil_size",
+        )
+    if meta:
+        parser.add_argument(
+            "--mode",
+            type=str,
+            default="attribute_and_eval",
+            choices=["attribute_only", "eval_only", "attribute_and_eval"],
+            help="for meta script, whether to run attribute.py and or eval.py",
+            dest="mode",
+        )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")
     for arg in vars(args):
@@ -148,11 +164,13 @@ def make_reproducible(seed: int = 123) -> None:
 
 
 def load_data(
-    dataset_name: str, batch_size: int
+    dataset_name: str,
+    subset: str,
+    batch_size: int,
 ) -> Tuple[Dataset, DataLoader, List[str]]:
     """Load data."""
     if dataset_name == "imagenette2":
-        dataset_path = os.path.join(constants.DATA_PATH, dataset_name, "val")
+        dataset_path = os.path.join(constants.DATA_PATH, dataset_name, subset)
         dataset = torchvision.datasets.ImageFolder(
             dataset_path,
             transform=transforms.Compose(
