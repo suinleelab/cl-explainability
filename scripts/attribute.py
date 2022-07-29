@@ -2,7 +2,6 @@
 
 import os
 import pickle
-from functools import partial
 
 import torch
 import torchvision.transforms as transforms
@@ -25,7 +24,7 @@ from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusSimilarity,
 )
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
-from cl_explain.explanations.self_weighted_score import SelfWeightedScore
+from cl_explain.explanations.weighted_score import WeightedScore
 from cl_explain.utils import make_superpixel_map
 
 
@@ -47,6 +46,10 @@ def main():
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
     else:
         raise NotImplementedError(f"removal={removal} is not implemented!")
+    feature_mask = make_superpixel_map(
+        img_h, img_w, args.superpixel_dim, args.superpixel_dim
+    )  # Mask for grouping pixels into superpixels.
+    feature_mask = feature_mask.to(device)
 
     labels = []
     for _, label in dataloader:
@@ -87,7 +90,7 @@ def main():
             shuffle=False,
         )
         if args.explanation_name == "self_weighted":
-            explanation_model = SelfWeightedScore(encoder=encoder)
+            explanation_model = WeightedScore(encoder=encoder)
         elif args.explanation_name == "corpus":
             explanation_model = CorpusSimilarity(
                 encoder=encoder,
@@ -111,42 +114,37 @@ def main():
                 f"{args.explanation_name} explanation is not implemented!"
             )
 
-        if args.attribution_name == "vanilla_grad":
-            attribution_model = Saliency(explanation_model)
-            attribute = partial(attribution_model.attribute, abs=False)
-            use_baseline = False
-        elif args.attribution_name == "int_grad":
-            attribution_model = IntegratedGradients(explanation_model)
-            attribute = partial(attribution_model.attribute)
-            use_baseline = True
-        elif args.attribution_name == "kernel_shap":
-            feature_mask = make_superpixel_map(
-                img_h, img_w, args.superpixel_dim, args.superpixel_dim
-            )
-            feature_mask = feature_mask.to(device)
-            attribution_model = KernelShap(explanation_model)
-            attribute = partial(
-                attribution_model.attribute, n_samples=10000, feature_mask=feature_mask
-            )
-            use_baseline = True
-        elif args.attribution_name == "random_baseline":
-            attribution_model = RandomBaseline(explanation_model)
-            attribute = partial(attribution_model.attribute)
-            use_baseline = False
-        else:
-            raise NotImplementedError(
-                f"{args.attribution_name} attribution is not implemented!"
-            )
-
         attribution_list = []
         for explicand, _ in explicand_dataloader:
             explicand = explicand.to(device)
             baseline = get_baseline(explicand)
             explicand.requires_grad = True
-            if use_baseline:
-                attribution = attribute(explicand, baselines=baseline)
+
+            # Update weight for self-weighted explanation model.
+            if args.explanation_name == "self_weighted":
+                explanation_model.generate_weight(explicand.detach().clone())
+
+            if args.attribution_name == "vanilla_grad":
+                attribution_model = Saliency(explanation_model)
+                attribution = attribution_model.attribute(explicand, abs=False)
+            elif args.attribution_name == "int_grad":
+                attribution_model = IntegratedGradients(explanation_model)
+                attribution = attribution_model.attribute(explicand, baselines=baseline)
+            elif args.attribution_name == "kernel_shap":
+                attribution_model = KernelShap(explanation_model)
+                attribution = attribution_model.attribute(
+                    explicand,
+                    baselines=baseline,
+                    feature_mask=feature_mask,
+                    n_samples=10000,
+                )
+            elif args.attribution_name == "random_baseline":
+                attribution_model = RandomBaseline(explanation_model)
+                attribution = attribution_model.attribute(explicand)
             else:
-                attribution = attribute(explicand)
+                raise NotImplementedError(
+                    f"{args.attribution_name} attribution is not implemented!"
+                )
             attribution_list.append(attribution.detach().cpu())
         outputs[target]["attributions"] = torch.cat(attribution_list)
 
