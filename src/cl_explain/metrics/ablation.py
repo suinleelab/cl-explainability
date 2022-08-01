@@ -29,7 +29,7 @@ class ImageAblation:
         img_w: int,
         superpixel_h: int = 1,
         superpixel_w: int = 1,
-        num_steps: int = 10,
+        num_steps: int = 50,
     ) -> None:
         self.model_list = model_list
         self.img_h = img_h
