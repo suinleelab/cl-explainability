@@ -5,7 +5,7 @@ import pickle
 
 import torch
 import torchvision.transforms as transforms
-from captum.attr import IntegratedGradients, KernelShap, Saliency
+from captum.attr import GradientShap, IntegratedGradients, KernelShap, Saliency
 from experiment_utils import (
     get_device,
     get_image_dataset_meta,
@@ -137,6 +137,14 @@ def main():
                     baselines=baseline,
                     feature_mask=feature_mask,
                     n_samples=10000,
+                )
+            elif args.attribution_name == "gradient_shap":
+                attribution_model = GradientShap(explanation_model)
+                attribution = attribution_model.attribute(
+                    explicand,
+                    baselines=baseline,
+                    n_samples=50,
+                    stdevs=1.0,
                 )
             elif args.attribution_name == "random_baseline":
                 attribution_model = RandomBaseline(explanation_model)
