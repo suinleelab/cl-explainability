@@ -37,6 +37,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         choices=[
             "vanilla_grad",
             "int_grad",
+            "smooth_int_grad",
             "kernel_shap",
             "gradient_shap",
             "random_baseline",

@@ -5,7 +5,13 @@ import pickle
 
 import torch
 import torchvision.transforms as transforms
-from captum.attr import GradientShap, IntegratedGradients, KernelShap, Saliency
+from captum.attr import (
+    GradientShap,
+    IntegratedGradients,
+    KernelShap,
+    NoiseTunnel,
+    Saliency,
+)
 from experiment_utils import (
     get_device,
     get_image_dataset_meta,
@@ -130,6 +136,16 @@ def main():
             elif args.attribution_name == "int_grad":
                 attribution_model = IntegratedGradients(explanation_model)
                 attribution = attribution_model.attribute(explicand, baselines=baseline)
+            elif args.attribution_name == "smooth_int_grad":
+                attribution_model = NoiseTunnel(IntegratedGradients(explanation_model))
+                attribution = attribution_model.attribute(
+                    explicand,
+                    nt_type="smoothgrad",
+                    nt_samples=50,
+                    nt_samples_batch_size=args.batch_size,
+                    stdevs=1.0,
+                    baselines=baseline,
+                )
             elif args.attribution_name == "kernel_shap":
                 attribution_model = KernelShap(explanation_model)
                 attribution = attribution_model.attribute(
