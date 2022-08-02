@@ -17,7 +17,12 @@ class RepShift(nn.Module):
         super().__init__()
         self.encoder = encoder
 
-    def forward(self, original_explicand, modified_explicand) -> torch.Tensor:
+    def forward(
+        self,
+        original_explicand: torch.Tensor,
+        modified_explicand: torch.Tensor,
+        detach: bool = True,
+    ) -> torch.Tensor:
         """
         Forward pass.
 
@@ -29,6 +34,8 @@ class RepShift(nn.Module):
             modified_explicand: Explicand after feature modifications, with shape
                 `(batch_size, *)`, where * indicates the input dimensions of
                 `RepShift.encoder`.
+            detach: Whether to detach encoder outputs from computational graph to
+                save memory consumption.
 
         Return:
         ------
@@ -36,5 +43,9 @@ class RepShift(nn.Module):
             representation for each sample.
         """
         original_rep = self.encoder(original_explicand)
+        if detach:
+            original_rep = original_rep.detach()
         modified_rep = self.encoder(modified_explicand)
+        if detach:
+            modified_rep = modified_rep.detach()
         return ((original_rep - modified_rep) ** 2).sum(dim=-1)

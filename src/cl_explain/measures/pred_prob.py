@@ -17,7 +17,12 @@ class PredProb(nn.Module):
         super().__init__()
         self.encoder = encoder
 
-    def forward(self, original_explicand, modified_explicand) -> torch.Tensor:
+    def forward(
+        self,
+        original_explicand: torch.Tensor,
+        modified_explicand: torch.Tensor,
+        detach: bool = True,
+    ) -> torch.Tensor:
         """
         Forward pass.
 
@@ -29,6 +34,8 @@ class PredProb(nn.Module):
             modified_explicand: Explicand after feature modifications, with shape
                 `(batch_size, *)`, where * indicates the input dimensions of
                 `RepShift.encoder`.
+            detach: Whether to detach encoder outputs from computational graph to
+                save memory consumption.
 
         Return:
         ------
@@ -38,9 +45,13 @@ class PredProb(nn.Module):
         original_pred = self.encoder(original_explicand, apply_eval_head=True).argmax(
             dim=-1
         )
+        if detach:
+            original_pred = original_pred.detach()
         modified_pred_prob = self.encoder(
             modified_explicand, apply_eval_head=True
         ).softmax(dim=-1)
+        if detach:
+            modified_pred_prob = modified_pred_prob.detach()
         modified_pred_prob = modified_pred_prob.gather(
             dim=-1, index=original_pred.unsqueeze(-1)
         )
