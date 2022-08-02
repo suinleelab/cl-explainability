@@ -136,6 +136,15 @@ def main():
             elif args.attribution_name == "int_grad":
                 attribution_model = IntegratedGradients(explanation_model)
                 attribution = attribution_model.attribute(explicand, baselines=baseline)
+            elif args.attribution_name == "smooth_vanilla_grad":
+                attribution_model = NoiseTunnel(Saliency(explanation_model))
+                attribution = attribution_model.attribute(
+                    explicand,
+                    nt_type="smoothgrad",
+                    nt_samples=50,
+                    nt_samples_batch_size=args.batch_size,
+                    stdevs=1.0,
+                )
             elif args.attribution_name == "smooth_int_grad":
                 attribution_model = NoiseTunnel(IntegratedGradients(explanation_model))
                 attribution = attribution_model.attribute(
