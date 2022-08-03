@@ -13,8 +13,11 @@ class ImageAblation:
     Args:
     ----
         model_list: List of models that return outputs for plotting the ablation curves.
+            A model requires only an ablated image as an input.
         measure_list: List of measures for the difference between original explicand
             output and ablated explicand output, for plotting the ablation curves.
+            Different from a model, a measure requires both the original and ablated
+            image as inputs.
         img_h: Model input image height.
         img_w: Model input image width.
         superpixel_h: Superpixels can be the ablated features instead of individual
@@ -88,12 +91,14 @@ class ImageAblation:
 
         Returns
         -------
-            The first element is a list containing model output tensors for all
-            explicands after the ablation steps, each tensor with shape
-            `(batch_size, *, num_steps + 1)`, where * denotes the model output
-            dimension. The second element is a list containing measure output tensors.
-            The third element is a tensor that contains the total number of ablated
-            features for each step, with size `num_steps + 1`.
+            model_curves: A list containing model output tensors for all explicands
+                after the ablation steps, each tensor with shape
+                `(batch_size, *, num_steps + 1)`, where * denotes the model output
+                dimension.
+            measure_curves: A list containing measure output tensors for all explicands
+                after the ablation steps.
+            total_num_features: A tensor containing the total number of ablated
+                features for each step, with size `num_steps + 1`.
         """
         available_kinds = ["insertion", "deletion"]
 
