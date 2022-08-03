@@ -141,7 +141,7 @@ def main():
                 attribution = attribution_model.attribute(
                     explicand,
                     nt_type="smoothgrad",
-                    nt_samples=50,
+                    nt_samples=25,
                     nt_samples_batch_size=args.batch_size,
                     stdevs=1.0,
                 )
@@ -150,7 +150,7 @@ def main():
                 attribution = attribution_model.attribute(
                     explicand,
                     nt_type="smoothgrad",
-                    nt_samples=50,
+                    nt_samples=25,
                     nt_samples_batch_size=args.batch_size,
                     stdevs=1.0,
                     baselines=baseline,
