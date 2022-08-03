@@ -34,7 +34,15 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "attribution_name",
         type=str,
-        choices=["vanilla_grad", "int_grad", "kernel_shap", "random_baseline"],
+        choices=[
+            "vanilla_grad",
+            "int_grad",
+            "smooth_vanilla_grad",
+            "smooth_int_grad",
+            "kernel_shap",
+            "gradient_shap",
+            "random_baseline",
+        ],
         help="name of feature attribution method to use",
     )
     parser.add_argument(
