@@ -25,6 +25,8 @@ from cl_explain.explanations.contrastive_corpus_similarity import (
 from cl_explain.explanations.corpus_distance import CorpusDistance
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusSimilarity
+from cl_explain.measures.pred_prob import PredProb
+from cl_explain.measures.rep_shift import RepShift
 from cl_explain.metrics.ablation import ImageAblation
 
 
@@ -131,16 +133,23 @@ def main():
             "majority_pred_prob",
             "training_set_distance",
         ]
+
+        measure_list = [PredProb(encoder=encoder), RepShift(encoder=encoder)]
+        measure_name_list = ["explicand_pred_prob", "explicand_rep_shift"]
+
         image_ablation = ImageAblation(
-            model_list,
-            img_h,
-            img_w,
+            model_list=model_list,
+            measure_list=measure_list,
+            img_h=img_h,
+            img_w=img_w,
             superpixel_h=args.eval_superpixel_dim,
             superpixel_w=args.eval_superpixel_dim,
         )
 
-        insertion_curve_list = [[] for _ in range(image_ablation.num_models)]
-        deletion_curve_list = [[] for _ in range(image_ablation.num_models)]
+        model_insertion_curve_list = [[] for _ in range(image_ablation.num_models)]
+        model_deletion_curve_list = [[] for _ in range(image_ablation.num_models)]
+        measure_insertion_curve_list = [[] for _ in range(image_ablation.num_measures)]
+        measure_deletion_curve_list = [[] for _ in range(image_ablation.num_measures)]
         insertion_num_features = None
         deletion_num_features = None
 
@@ -159,29 +168,57 @@ def main():
             if args.eval_superpixel_dim > 1:
                 attribution = pixelate(attribution)  # Get superpixel attributions.
 
-            insertion_curves, insertion_num_features = image_ablation.evaluate(
+            (
+                model_insertion_curves,
+                measure_insertion_curves,
+                insertion_num_features,
+            ) = image_ablation.evaluate(
                 explicand,
                 attribution,
                 baseline,
                 kind="insertion",
             )
-            deletion_curves, deletion_num_features = image_ablation.evaluate(
+            (
+                model_deletion_curves,
+                measure_deletion_curves,
+                deletion_num_features,
+            ) = image_ablation.evaluate(
                 explicand,
                 attribution,
                 baseline,
                 kind="deletion",
             )
             for j in range(image_ablation.num_models):
-                insertion_curve_list[j].append(insertion_curves[j].detach().cpu())
-                deletion_curve_list[j].append(deletion_curves[j].detach().cpu())
+                model_insertion_curve_list[j].append(
+                    model_insertion_curves[j].detach().cpu()
+                )
+                model_deletion_curve_list[j].append(
+                    model_deletion_curves[j].detach().cpu()
+                )
+            for k in range(image_ablation.num_measures):
+                measure_insertion_curve_list[k].append(
+                    measure_insertion_curves[k].detach().cpu()
+                )
+                measure_deletion_curve_list[k].append(
+                    measure_deletion_curves[k].detach().cpu()
+                )
 
-        results[target]["insertion_curves"] = [
-            torch.cat(curve) for curve in insertion_curve_list
+        results[target]["model_insertion_curves"] = [
+            torch.cat(curve) for curve in model_insertion_curve_list
         ]
-        results[target]["deletion_curves"] = [
-            torch.cat(curve) for curve in deletion_curve_list
+        results[target]["model_deletion_curves"] = [
+            torch.cat(curve) for curve in model_deletion_curve_list
         ]
         results[target]["eval_model_names"] = model_name_list
+
+        results[target]["measure_insertion_curves"] = [
+            torch.cat(curve) for curve in measure_insertion_curve_list
+        ]
+        results[target]["measure_deletion_curves"] = [
+            torch.cat(curve) for curve in measure_deletion_curve_list
+        ]
+        results[target]["eval_measure_names"] = measure_name_list
+
         results[target]["insertion_num_features"] = insertion_num_features
         results[target]["deletion_num_features"] = deletion_num_features
 

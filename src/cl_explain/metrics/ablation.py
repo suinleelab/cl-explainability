@@ -13,6 +13,11 @@ class ImageAblation:
     Args:
     ----
         model_list: List of models that return outputs for plotting the ablation curves.
+            A model requires only an ablated image as an input.
+        measure_list: List of measures for the difference between original explicand
+            output and ablated explicand output, for plotting the ablation curves.
+            Different from a model, a measure requires both the original and ablated
+            image as inputs.
         img_h: Model input image height.
         img_w: Model input image width.
         superpixel_h: Superpixels can be the ablated features instead of individual
@@ -25,6 +30,7 @@ class ImageAblation:
     def __init__(
         self,
         model_list: List[Union[Callable, nn.Module]],
+        measure_list: List[Union[Callable, nn.Module]],
         img_h: int,
         img_w: int,
         superpixel_h: int = 1,
@@ -32,12 +38,14 @@ class ImageAblation:
         num_steps: int = 50,
     ) -> None:
         self.model_list = model_list
+        self.measure_list = measure_list
         self.img_h = img_h
         self.img_w = img_w
         self.superpixel_h = superpixel_h
         self.superpixel_w = superpixel_w
         self.num_steps = num_steps
         self.num_models = len(model_list)
+        self.num_measures = len(measure_list)
 
         attr_h, remainder_h = divmod(img_h, superpixel_h)
         attr_w, remainder_w = divmod(img_w, superpixel_w)
@@ -67,7 +75,7 @@ class ImageAblation:
         attribution: torch.Tensor,
         baseline: torch.Tensor,
         kind: str = "insertion",
-    ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], torch.Tensor]:
         """
         Evaluates feature attribution scores with insertion/deletion ablation metric.
 
@@ -83,11 +91,14 @@ class ImageAblation:
 
         Returns
         -------
-            The first element is a list containing model output tensors for all
-            explicands after the ablation steps, each tensor with shape
-            `(batch_size, *, num_steps + 1)`, where * denotes the model output
-            dimension. The second element is a tensor that contains the total number of
-            ablated features for each step, with size `num_steps + 1`.
+            model_curves: A list containing model output tensors for all explicands
+                after the ablation steps, each tensor with shape
+                `(batch_size, *, num_steps + 1)`, where * denotes the model output
+                dimension.
+            measure_curves: A list containing measure output tensors for all explicands
+                after the ablation steps.
+            total_num_features: A tensor containing the total number of ablated
+                features for each step, with size `num_steps + 1`.
         """
         available_kinds = ["insertion", "deletion"]
 
@@ -128,7 +139,8 @@ class ImageAblation:
         else:
             raise ValueError(f"kind={kind} should be one of {available_kinds}!")
 
-        curves = [[] for _ in range(self.num_models)]
+        model_curves = [[] for _ in range(self.num_models)]
+        measure_curves = [[] for _ in range(self.num_measures)]
         total_num_features = []
         num_features = 0
         for step_size in self.step_sizes:
@@ -140,11 +152,17 @@ class ImageAblation:
                 mask = self.mask_upsampler(mask)
             masked_explicand = explicand * mask + baseline * (1 - mask)
             for j in range(self.num_models):
-                output = self.model_list[j](masked_explicand)
-                curves[j].append(output.detach().cpu())
+                model_output = self.model_list[j](masked_explicand)
+                model_curves[j].append(model_output.detach().cpu())
+            for k in range(self.num_measures):
+                measure_output = self.measure_list[k](
+                    original_explicand=explicand, modified_explicand=masked_explicand
+                )
+                measure_curves[k].append(measure_output.detach().cpu())
             total_num_features.append(num_features)
-        curves = [torch.stack(curve, dim=-1) for curve in curves]
-        return curves, torch.Tensor(total_num_features)
+        model_curves = [torch.stack(curve, dim=-1) for curve in model_curves]
+        measure_curves = [torch.stack(curve, dim=-1) for curve in measure_curves]
+        return model_curves, measure_curves, torch.Tensor(total_num_features)
 
     def _get_step_sizes(self):
         step_size, remainder = divmod(self.feature_attr_size, self.num_steps)
