@@ -11,7 +11,8 @@ devices=( "${device1}" "${device2}" "${device3}" )
 explanations=( "self_weighted" "corpus" "contrastive" )
 
 if [ "${attribution_name}" = "int_grad" ] \
-    || [ "${attribution_name}" = "smooth_int_grad" ]
+    || [ "${attribution_name}" = "smooth_int_grad" ] \
+    || [ "${attribution_name}" = "gradient_shap" ]
 then
     batch_size=1
 elif [ "${attribution_name}" = "smooth_vanilla_grad" ]
