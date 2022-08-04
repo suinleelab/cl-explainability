@@ -17,6 +17,9 @@ then
 elif [ "${attribution_name}" = "smooth_vanilla_grad" ]
 then
     batch_size=4
+elif [ "${attribution_name}" = "gradient_shap" ]
+then
+    batch_size=16
 else
     batch_size=32
 fi
