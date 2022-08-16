@@ -7,8 +7,10 @@ https://arxiv.org/abs/2203.01928
 import torch
 import torch.nn as nn
 
+from cl_explain.explanations.explanation_base import ExplanationBase
 
-class WeightedScore(nn.Module):
+
+class WeightedScore(ExplanationBase):
     """
     Module class for label-free feature importance proposed by Crabbe et al. 2022.
 
@@ -18,8 +20,7 @@ class WeightedScore(nn.Module):
     """
 
     def __init__(self, encoder: nn.Module) -> None:
-        super().__init__()
-        self.encoder = encoder
+        super().__init__(encoder=encoder)
         self.weight = None
 
     def forward(self, explicand: torch.Tensor) -> torch.Tensor:
