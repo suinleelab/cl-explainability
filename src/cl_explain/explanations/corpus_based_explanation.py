@@ -46,5 +46,13 @@ class CorpusBasedExplanation(nn.Module):
         return torch.cat(rep)
 
     @staticmethod
-    def _compute_norm(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def _compute_difference_norm(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise difference norms."""
         return torch.norm(x.unsqueeze(1) - y.unsqueeze(0), dim=-1)
+
+    @staticmethod
+    def _compute_cosine_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise cosine similarities."""
+        return (x.unsqueeze(1) * y.unsqueeze(0)).sum(dim=-1) / (
+            x.norm(dim=-1).unsqueeze(1) * y.norm(dim=-1).unsqueeze(0)
+        )

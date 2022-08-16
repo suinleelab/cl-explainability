@@ -27,9 +27,9 @@ from tqdm import tqdm
 
 from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.explanations.contrastive_corpus_similarity import (
-    ContrastiveCorpusSimilarity,
+    ContrastiveCorpusCosineSimilarity,
 )
-from cl_explain.explanations.corpus_similarity import CorpusSimilarity
+from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.explanations.weighted_score import WeightedScore
 from cl_explain.utils import make_superpixel_map
 
@@ -98,7 +98,7 @@ def main():
         if args.explanation_name == "self_weighted":
             explanation_model = WeightedScore(encoder=encoder)
         elif args.explanation_name == "corpus":
-            explanation_model = CorpusSimilarity(
+            explanation_model = CorpusCosineSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 batch_size=args.batch_size,
@@ -109,7 +109,7 @@ def main():
                 batch_size=args.batch_size,
                 shuffle=False,
             )
-            explanation_model = ContrastiveCorpusSimilarity(
+            explanation_model = ContrastiveCorpusCosineSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 foil_dataloader=foil_dataloader,

@@ -41,7 +41,7 @@ class CorpusDistance(CorpusBasedExplanation):
         distance = 0
         for (x,) in rep_dataloader:
             x = x.to(explicand_rep.device)
-            x = self._compute_norm(explicand_rep, x) ** 2
+            x = self._compute_difference_norm(explicand_rep, x) ** 2
             x = x.sum(dim=1)
             distance += x
         return distance / rep_data_size
