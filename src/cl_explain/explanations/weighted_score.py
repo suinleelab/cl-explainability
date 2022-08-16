@@ -6,6 +6,7 @@ https://arxiv.org/abs/2203.01928
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from cl_explain.explanations.explanation_base import ExplanationBase
 
@@ -44,3 +45,20 @@ class WeightedScore(ExplanationBase):
         if self.normalize:
             similarity /= self.weight.norm(dim=-1) * explicand_rep.norm(dim=-1)
         return similarity
+
+    def _compute_pairwise_similarity(
+        self,
+        explicand: torch.Tensor,
+        rep_dataloader: DataLoader,
+        rep_data_size: int,
+    ) -> torch.Tensor:
+        explicand_rep = self.encoder(explicand)
+        similarity = 0
+        for (x,) in rep_dataloader:
+            x = x.to(explicand_rep.device)
+            x = self._compute_cosine_similarity(
+                explicand_rep, x, normalize=self.normalize
+            )
+            x = x.sum(dim=1)
+            similarity += x
+        return similarity / rep_data_size  # Average over number of comparisons.
