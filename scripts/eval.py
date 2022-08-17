@@ -20,11 +20,11 @@ from torch.utils.data import DataLoader, Subset, TensorDataset
 from tqdm import tqdm
 
 from cl_explain.explanations.contrastive_corpus_similarity import (
-    ContrastiveCorpusSimilarity,
+    ContrastiveCorpusCosineSimilarity,
 )
 from cl_explain.explanations.corpus_distance import CorpusDistance
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
-from cl_explain.explanations.corpus_similarity import CorpusSimilarity
+from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.measures.pred_prob import PredProb
 from cl_explain.measures.rep_shift import RepShift
 from cl_explain.metrics.ablation import ImageAblation
@@ -109,12 +109,12 @@ def main():
         )
 
         model_list = [
-            CorpusSimilarity(
+            CorpusCosineSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 batch_size=args.batch_size,
             ),
-            ContrastiveCorpusSimilarity(
+            ContrastiveCorpusCosineSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 foil_dataloader=eval_foil_dataloader,
