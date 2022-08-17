@@ -22,7 +22,6 @@ from tqdm import tqdm
 from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusCosineSimilarity,
 )
-from cl_explain.explanations.corpus_distance import CorpusDistance
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.measures.pred_prob import PredProb
@@ -121,17 +120,11 @@ def main():
                 batch_size=args.batch_size,
             ),
             CorpusMajorityProb(encoder=encoder, corpus_dataloader=corpus_dataloader),
-            CorpusDistance(
-                encoder=encoder,
-                corpus_dataloader=train_dataloader,
-                batch_size=args.batch_size,
-            ),
         ]
         model_name_list = [
-            "similarity",
-            "contrastive_similarity",
-            "majority_pred_prob",
-            "training_set_distance",
+            "corpus_cosine_similarity",
+            "contrastive_corpus_cosine_similarity",
+            "corpus_majority_prob",
         ]
 
         measure_list = [PredProb(encoder=encoder), RepShift(encoder=encoder)]
