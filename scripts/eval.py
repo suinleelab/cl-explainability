@@ -26,7 +26,7 @@ from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
 from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.measures.pred_prob import PredProb
 from cl_explain.measures.rep_shift import RepShift
-from cl_explain.metrics.ablation import ImageAblation
+from cl_explain.metrics.ablation import ImageAblation, compute_auc
 
 
 def main():
@@ -214,6 +214,24 @@ def main():
 
         results[target]["insertion_num_features"] = insertion_num_features
         results[target]["deletion_num_features"] = deletion_num_features
+
+        # Calculate AUC for insertion and deletion curves.
+        results[target]["model_insertion_aucs"] = [
+            compute_auc(curve, insertion_num_features)
+            for curve in results[target]["model_insertion_curves"]
+        ]
+        results[target]["model_deletion_aucs"] = [
+            compute_auc(curve, deletion_num_features)
+            for curve in results[target]["model_deletion_curves"]
+        ]
+        results[target]["measure_insertion_aucs"] = [
+            compute_auc(curve, insertion_num_features)
+            for curve in results[target]["measure_insertion_curves"]
+        ]
+        results[target]["measure_deletion_aucs"] = [
+            compute_auc(curve, deletion_num_features)
+            for curve in results[target]["measure_deletion_curves"]
+        ]
 
     print("Saving results...")
     result_filename = output_filename.replace("outputs", "eval_results").replace(

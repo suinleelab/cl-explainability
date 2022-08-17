@@ -170,3 +170,26 @@ class ImageAblation:
         for i in range(remainder):
             step_size_list[i] += 1
         return [0] + step_size_list  # Add a step size of zero to get initial output.
+
+
+def compute_auc(curve: torch.Tensor, num_features: torch.Tensor) -> torch.Tensor:
+    """
+    Compute AUCs for insertion or deletion curves.
+
+    Args:
+    ----
+        curve: Insertion or deletion curves with shape `(batch_size, num_steps)`.
+        num_features: Number of inserted or deleted features with size `num_steps`.
+
+    Returns
+    -------
+        A tensor containing the AUC for each curve, with size `batch_size`.
+    """
+    num_features_dim = len(num_features.shape)
+    if num_features_dim == 1:
+        prop_features = num_features / num_features.max()
+    elif num_features_dim == 2:
+        prop_features = num_features / num_features.max(dim=1)[0].unsqueeze(1)
+    else:
+        raise ValueError(f"num_features has {num_features_dim} > 2 dimensions!")
+    return torch.trapezoid(y=curve, x=prop_features, dim=-1)
