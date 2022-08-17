@@ -39,7 +39,7 @@ class RepShift(nn.Module):
 
         Return:
         ------
-            The squared L2 distance between the original representation and modified
+            The L2 distance between the original representation and modified
             representation for each sample.
         """
         original_rep = self.encoder(original_explicand)
@@ -48,4 +48,4 @@ class RepShift(nn.Module):
         modified_rep = self.encoder(modified_explicand)
         if detach:
             modified_rep = modified_rep.detach()
-        return ((original_rep - modified_rep) ** 2).sum(dim=-1)
+        return ((original_rep - modified_rep) ** 2).sum(dim=-1).sqrt()
