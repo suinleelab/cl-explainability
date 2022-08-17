@@ -1,7 +1,8 @@
 """
 Explanation behavior using an explicand representation's self-weighted importance, as
-proposed by Crabbe et al. Label-Free Explainability for Unsupervised Models.
-https://arxiv.org/abs/2203.01928
+proposed by Crabbe et al. Label-Free Explainability for Unsupervised Models
+(https://arxiv.org/abs/2203.01928) and by Wickstrom et al. RELAX: Representation
+Learning Explainability (https://arxiv.org/abs/2112.10161).
 """
 
 import torch
@@ -13,13 +14,14 @@ from cl_explain.explanations.explanation_base import ExplanationBase
 
 class WeightedScore(ExplanationBase):
     """
-    Module class for label-free feature importance proposed by Crabbe et al. 2022.
+    Module class for label-free feature importance proposed by Crabbe et al. 2022
+    (without normalization) or RELAX by Wickstrom et al. 2022 (with normalization).
 
     Args:
     ----
         encoder: Encoder module to explain.
         normalize: Whether to normalize dot product similarity by product of vector
-            norms.
+            norms (that is, whether to use cosine similarity).
     """
 
     def __init__(self, encoder: nn.Module, normalize: bool = False) -> None:
@@ -52,13 +54,15 @@ class WeightedScore(ExplanationBase):
         rep_dataloader: DataLoader,
         rep_data_size: int,
     ) -> torch.Tensor:
+        """Compute pairwise similarities between explicands and some representations."""
         explicand_rep = self.encoder(explicand)
         similarity = 0
         for (x,) in rep_dataloader:
             x = x.to(explicand_rep.device)
-            x = self._compute_cosine_similarity(
-                explicand_rep, x, normalize=self.normalize
-            )
+            if self.normalize:
+                x = self._compute_cosine_similarity(explicand_rep, x)
+            else:
+                x = self._compute_dot_product(explicand_rep, x)
             x = x.sum(dim=1)
             similarity += x
         return similarity / rep_data_size  # Average over number of comparisons.
