@@ -29,6 +29,9 @@ from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusCosineSimilarity,
 )
+from cl_explain.explanations.contrastive_weighted_score import (
+    ContrastiveWeightedCosineScore,
+)
 from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.explanations.weighted_score import WeightedScore
 from cl_explain.utils import make_superpixel_map
@@ -80,7 +83,7 @@ def main():
         leftover_idx = torch.LongTensor(list(leftover_idx))
         leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
         outputs[target]["leftover_idx"] = leftover_idx
-        if args.explanation_name == "contrastive":
+        if "contrastive" in args.explanation_name:
             outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")
@@ -97,13 +100,24 @@ def main():
         )
         if args.explanation_name == "self_weighted":
             explanation_model = WeightedScore(encoder=encoder)
+        elif args.explanation_name == "contrastive_self_weighted":
+            foil_dataloader = DataLoader(
+                Subset(dataset, indices=outputs[target]["foil_idx"]),
+                batch_size=args.batch_size,
+                shuffle=False,
+            )
+            explanation_model = ContrastiveWeightedCosineScore(
+                encoder=encoder,
+                foil_dataloader=foil_dataloader,
+                batch_size=args.batch_size,
+            )
         elif args.explanation_name == "corpus":
             explanation_model = CorpusCosineSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 batch_size=args.batch_size,
             )
-        elif args.explanation_name == "contrastive":
+        elif args.explanation_name == "contrastive_corpus":
             foil_dataloader = DataLoader(
                 Subset(dataset, indices=outputs[target]["foil_idx"]),
                 batch_size=args.batch_size,
@@ -126,8 +140,8 @@ def main():
             baseline = get_baseline(explicand)
             explicand.requires_grad = True
 
-            # Update weight for self-weighted explanation model.
-            if args.explanation_name == "self_weighted":
+            # Update weight for self-weighted explanation models.
+            if "self_weighted" in args.explanation_name:
                 explanation_model.generate_weight(explicand.detach().clone())
 
             if args.attribution_name == "vanilla_grad":
