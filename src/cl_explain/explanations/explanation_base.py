@@ -35,12 +35,15 @@ class ExplanationBase(nn.Module):
         """Compute pairwise difference norms."""
         return torch.norm(x.unsqueeze(1) - y.unsqueeze(0), dim=-1)
 
-    @staticmethod
     def _compute_cosine_similarity(
-        x: torch.Tensor, y: torch.Tensor, normalize: bool = True
+        self, x: torch.Tensor, y: torch.Tensor
     ) -> torch.Tensor:
-        """Compute pairwise cosine similarities (or dot products)."""
-        similarity = (x.unsqueeze(1) * y.unsqueeze(0)).sum(dim=-1)
-        if normalize:
-            similarity /= x.norm(dim=-1).unsqueeze(1) * y.norm(dim=-1).unsqueeze(0)
-        return similarity
+        """Compute pairwise cosine similarities."""
+        return self._compute_dot_product(x, y) / (
+            x.norm(dim=-1).unsqueeze(1) * y.norm(dim=-1).unsqueeze(0)
+        )
+
+    @staticmethod
+    def _compute_dot_product(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Compute pairwise dot products."""
+        return (x.unsqueeze(1) * y.unsqueeze(0)).sum(dim=-1)
