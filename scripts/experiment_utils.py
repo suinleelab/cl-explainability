@@ -28,7 +28,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "explanation_name",
         type=str,
-        choices=["self_weighted", "corpus", "contrastive"],
+        choices=[
+            "self_weighted",
+            "contrastive_self_weighted",
+            "corpus",
+            "contrastive_corpus",
+        ],
         help="explanation behavior for feature attribution methods",
     )
     parser.add_argument(
@@ -253,11 +258,11 @@ def get_output_filename(
 ) -> str:
     """Get output filename for saving attribution results."""
     output_filename = "outputs"
-    if explanation_name in ["corpus", "contrastive"]:
+    output_filename += f"_explicand_size={explicand_size}"
+    if "corpus" in explanation_name:
         output_filename += f"_corpus_size={corpus_size}"
-        if explanation_name == "contrastive":
-            output_filename += f"_foil_size={foil_size}"
-        output_filename += f"_explicand_size={explicand_size}"
+    if "contrastive" in explanation_name:
+        output_filename += f"_foil_size={foil_size}"
     if attribution_name in constants.SUPERPIXEL_ATTRIBUTION_METHODS:
         output_filename += f"_superpixel_dim={superpixel_dim}"
     output_filename += f"_removal={removal}"
