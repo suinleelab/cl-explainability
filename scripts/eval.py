@@ -27,6 +27,7 @@ from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
 from cl_explain.measures.pred_prob import PredProb
 from cl_explain.measures.rep_shift import RepShift
 from cl_explain.metrics.ablation import ImageAblation, compute_auc
+from cl_explain.metrics.sparsity import compute_gini_index
 
 
 def main():
@@ -145,6 +146,7 @@ def main():
         measure_deletion_curve_list = [[] for _ in range(image_ablation.num_measures)]
         insertion_num_features = None
         deletion_num_features = None
+        gini_list = []
 
         for ([explicand, _], [attribution]) in zip(
             explicand_dataloader, attribution_dataloader
@@ -195,6 +197,9 @@ def main():
                 measure_deletion_curve_list[k].append(
                     measure_deletion_curves[k].detach().cpu()
                 )
+            gini_list.append(
+                compute_gini_index(attribution.abs()).detach().cpu()
+            )  # Calculate Gini Index for attribution magnitude.
 
         results[target]["model_insertion_curves"] = [
             torch.cat(curve) for curve in model_insertion_curve_list
@@ -214,6 +219,8 @@ def main():
 
         results[target]["insertion_num_features"] = insertion_num_features
         results[target]["deletion_num_features"] = deletion_num_features
+
+        results[target]["gini_indices"] = torch.cat(gini_list)
 
         # Calculate AUC for insertion and deletion curves.
         results[target]["model_insertion_aucs"] = [
