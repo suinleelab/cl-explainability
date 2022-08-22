@@ -3,6 +3,7 @@
 import os
 import pickle
 
+import constants
 import torch
 import torchvision.transforms as transforms
 from captum.attr import (
@@ -47,9 +48,22 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
-    dataset, dataloader, class_map = load_data(
+    val_dataset, val_dataloader, _ = load_data(
         dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
     )
+    train_dataset, train_dataloader, _ = load_data(
+        dataset_name=args.dataset_name, subset="train", batch_size=args.batch_size
+    )
+    if args.dataset_name in ["imagenet", "imagenette2"]:
+        val_labels = [sample[0].split("/")[-2] for sample in val_dataset.samples]
+        train_labels = [sample[0].split("/")[-2] for sample in train_dataset.samples]
+        unique_labels = constants.IMAGENETTE_SYNSETS
+        train_all_idx = torch.arange(len(train_dataset.samples))
+    else:
+        raise NotImplementedError(
+            f"--dataset-name={args.dataset_name} is not implemented!"
+        )
+
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
@@ -60,41 +74,42 @@ def main():
     )  # Mask for grouping pixels into superpixels.
     feature_mask = feature_mask.to(device)
 
-    labels = []
-    for _, label in dataloader:
-        labels.append(label)
-    labels = torch.cat(labels)
-    unique_labels = labels.unique().numpy()
-    outputs = {target: {"source_label": class_map[target]} for target in unique_labels}
-    all_idx = torch.arange(labels.size(0))
-
+    outputs = {target: {} for target in unique_labels}
     for target in unique_labels:
-        target_idx = (labels == target).nonzero().flatten()
-        target_idx = target_idx[torch.randperm(target_idx.size(0))]
-        explicand_idx = target_idx[: args.explicand_size]
-        corpus_idx = target_idx[
-            args.explicand_size : (args.explicand_size + args.corpus_size)
-        ]
-        outputs[target]["explicand_idx"] = explicand_idx
-        outputs[target]["corpus_idx"] = corpus_idx
-        leftover_idx = set(all_idx.numpy()) - set(explicand_idx.numpy()).union(
-            set(corpus_idx.numpy())
+        val_target_idx = (
+            torch.Tensor([label == target for label in val_labels]).nonzero().flatten()
         )
-        leftover_idx = torch.LongTensor(list(leftover_idx))
-        leftover_idx = leftover_idx[torch.randperm(leftover_idx.size(0))]
-        outputs[target]["leftover_idx"] = leftover_idx
+        train_target_idx = (
+            torch.Tensor([label == target for label in train_labels])
+            .nonzero()
+            .flatten()
+        )
+        val_target_idx = val_target_idx[torch.randperm(val_target_idx.size(0))]
+        train_target_idx = train_target_idx[torch.randperm(train_target_idx.size(0))]
+
+        val_explicand_idx = val_target_idx[: args.explicand_size]
+        train_corpus_idx = train_target_idx[: args.corpus_size]
+        outputs[target]["val_explicand_idx"] = val_explicand_idx
+        outputs[target]["train_corpus_idx"] = train_corpus_idx
+
+        train_leftover_idx = set(train_all_idx.numpy()) - set(train_corpus_idx.numpy())
+        train_leftover_idx = torch.LongTensor(list(train_leftover_idx))
+        train_leftover_idx = train_leftover_idx[
+            torch.randperm(train_leftover_idx.size(0))
+        ]
+        outputs[target]["train_leftover_idx"] = train_leftover_idx
         if "contrastive" in args.explanation_name:
-            outputs[target]["foil_idx"] = leftover_idx[: args.foil_size]
+            outputs[target]["train_foil_idx"] = train_leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")
     for target in tqdm(unique_labels):
         explicand_dataloader = DataLoader(
-            Subset(dataset, indices=outputs[target]["explicand_idx"]),
+            Subset(val_dataset, indices=outputs[target]["val_explicand_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
         corpus_dataloader = DataLoader(
-            Subset(dataset, indices=outputs[target]["corpus_idx"]),
+            Subset(train_dataset, indices=outputs[target]["train_corpus_idx"]),
             batch_size=args.batch_size,
             shuffle=False,
         )
@@ -102,7 +117,7 @@ def main():
             explanation_model = WeightedScore(encoder=encoder)
         elif args.explanation_name == "contrastive_self_weighted":
             foil_dataloader = DataLoader(
-                Subset(dataset, indices=outputs[target]["foil_idx"]),
+                Subset(train_dataset, indices=outputs[target]["train_foil_idx"]),
                 batch_size=args.batch_size,
                 shuffle=False,
             )
@@ -119,7 +134,7 @@ def main():
             )
         elif args.explanation_name == "contrastive_corpus":
             foil_dataloader = DataLoader(
-                Subset(dataset, indices=outputs[target]["foil_idx"]),
+                Subset(train_dataset, indices=outputs[target]["train_foil_idx"]),
                 batch_size=args.batch_size,
                 shuffle=False,
             )

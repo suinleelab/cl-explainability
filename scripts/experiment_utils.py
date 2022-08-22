@@ -53,15 +53,15 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "--dataset-name",
         type=str,
-        default="imagenette2",
-        choices=["imagenette2"],
+        default="imagenet",
+        choices=["imagenet", "imagenette2"],
         help="name of dataset to use",
         dest="dataset_name",
     )
     parser.add_argument(
         "--explicand-size",
         type=int,
-        default=100,
+        default=25,
         help="number of explicands per class",
         dest="explicand_size",
     )
@@ -75,7 +75,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "--foil-size",
         type=int,
-        default=500,
+        default=1000,
         help="number of foil examples",
         dest="foil_size",
     )
@@ -182,17 +182,28 @@ def load_data(
     batch_size: int,
 ) -> Tuple[Dataset, DataLoader, List[str]]:
     """Load data."""
+    imagenet_transform = transforms.Compose(
+        [
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+        ]
+    )
     if dataset_name == "imagenette2":
         dataset_path = os.path.join(constants.DATA_PATH, dataset_name, subset)
         dataset = torchvision.datasets.ImageFolder(
             dataset_path,
-            transform=transforms.Compose(
-                [
-                    transforms.Resize(256),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                ]
-            ),
+            transform=imagenet_transform,
+        )
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        class_map = dataset.find_classes(dataset_path)[0]
+    elif dataset_name == "imagenet":
+        dataset_path = os.path.join(
+            constants.DATA_PATH, dataset_name, "ILSVRC/Data/CLS-LOC", subset
+        )
+        dataset = torchvision.datasets.ImageFolder(
+            dataset_path,
+            transform=imagenet_transform,
         )
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         class_map = dataset.find_classes(dataset_path)[0]
@@ -274,7 +285,7 @@ def get_output_filename(
 
 def get_image_dataset_meta(dataset_name: str) -> Tuple[int, int, str]:
     """Get meta information about an image dataset."""
-    if dataset_name == "imagenette2":
+    if dataset_name in ["imagenet", "imagenette2"]:
         img_h = 224
         img_w = 224
         removal = "blurring"  # Appropriate pixel removal operation.
