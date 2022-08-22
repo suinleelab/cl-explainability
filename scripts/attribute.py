@@ -48,10 +48,10 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
-    val_dataset, val_dataloader, _ = load_data(
+    val_dataset, _, _ = load_data(
         dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
     )
-    train_dataset, train_dataloader, _ = load_data(
+    train_dataset, _, _ = load_data(
         dataset_name=args.dataset_name, subset="train", batch_size=args.batch_size
     )
     if args.dataset_name in ["imagenet", "imagenette2"]:
