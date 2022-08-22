@@ -136,7 +136,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         parser.add_argument(
             "--eval-foil-size",
             type=int,
-            default=500,
+            default=1000,
             help="number of foil samples for evaluating contrastive metrics",
             dest="eval_foil_size",
         )
