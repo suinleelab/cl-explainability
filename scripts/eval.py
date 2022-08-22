@@ -149,6 +149,7 @@ def main():
         insertion_num_features = None
         deletion_num_features = None
         gini_list = []
+        rep_zero_prop_list = []
 
         for ([explicand, _], [attribution]) in zip(
             explicand_dataloader, attribution_dataloader
@@ -202,6 +203,7 @@ def main():
             gini_list.append(
                 compute_gini_index(attribution.abs()).detach().cpu()
             )  # Calculate Gini Index for attribution magnitude.
+            rep_zero_prop_list.append(((encoder(explicand) == 0) * 1.0).mean(dim=-1))
 
         results[target]["model_insertion_curves"] = [
             torch.cat(curve) for curve in model_insertion_curve_list
@@ -223,6 +225,7 @@ def main():
         results[target]["deletion_num_features"] = deletion_num_features
 
         results[target]["gini_indices"] = torch.cat(gini_list)
+        results[target]["rep_zero_props"] = torch.cat(rep_zero_prop_list)
 
         # Calculate AUC for insertion and deletion curves.
         results[target]["model_insertion_aucs"] = [
