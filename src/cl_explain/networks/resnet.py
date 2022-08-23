@@ -47,7 +47,7 @@ class PretrainedResNet(nn.Module):
         self.backbone = backbone
         self.head = head
 
-    def forward(self, x: torch.Tensor, apply_eval_head=False) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, apply_eval_head: bool = False) -> torch.Tensor:
         """
         Forward pass.
 
