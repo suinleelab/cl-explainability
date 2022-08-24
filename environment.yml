@@ -7,4 +7,3 @@ dependencies:
   - pip
   - pip:
       - protobuf<=3.20.1
-      - tensorflow==1.15.4
