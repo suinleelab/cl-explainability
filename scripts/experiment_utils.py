@@ -13,6 +13,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 
+from cl_explain.data.datasets import MURAImageDataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 
 
@@ -180,20 +181,35 @@ def load_data(
     dataset_name: str,
     subset: str,
     batch_size: int,
+    normalize: bool = False,
+    augment: bool = False,
 ) -> Tuple[Dataset, DataLoader, List[str]]:
-    """Load data."""
-    imagenet_transform = transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-        ]
-    )
+    """Load image data."""
+    transform_list = []
+    if dataset_name in ["imagenette2", "imagenet", "mura"]:
+        transform_list.append(transforms.Resize(256))
+        transform_list.append(transforms.CenterCrop(224))
+    else:
+        raise NotImplementedError(f"{dataset_name} loading is not implemented!")
+
+    if augment:
+        transform_list.append(transforms.RandomVerticalFlip())
+        transform_list.append(transforms.RandomHorizontalFlip())
+        transform_list.append(transforms.RandomRotation(degrees=30))
+    if normalize:
+        transform_list.append(
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225],
+            )
+        )
+    transform = transforms.Compose(transform_list)
+
     if dataset_name == "imagenette2":
         dataset_path = os.path.join(constants.DATA_PATH, dataset_name, subset)
         dataset = torchvision.datasets.ImageFolder(
             dataset_path,
-            transform=imagenet_transform,
+            transform=transform,
         )
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         class_map = dataset.find_classes(dataset_path)[0]
@@ -203,10 +219,17 @@ def load_data(
         )
         dataset = torchvision.datasets.ImageFolder(
             dataset_path,
-            transform=imagenet_transform,
+            transform=transform,
         )
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         class_map = dataset.find_classes(dataset_path)[0]
+    elif dataset_name == "mura":
+        if subset == "val":
+            subset = "valid"
+        dataset_path = os.path.join(constants.DATA_PATH, dataset_name, "MURA-v1.1")
+        dataset = MURAImageDataset(dataset_path, subset, transform=transform)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        class_map = dataset.classes
     else:
         raise NotImplementedError(f"{dataset_name} loading is not implemented!")
     return dataset, dataloader, class_map
