@@ -36,8 +36,7 @@ class LitClassifier(pl.LightningModule):
         self.weight_decay = weight_decay
         self.lr_step_size = lr_step_size
         self.lr_gamma = lr_gamma
-        self.save_hyperparameters(ignore=["network"])
-        # Ignore nn.Module objects because they are already saved in a checkpoint.
+        self.save_hyperparameters()
 
     def forward(self, x: torch.Tensor, apply_eval_head: bool = False) -> torch.Tensor:
         return self.network(x, apply_eval_head=apply_eval_head)
