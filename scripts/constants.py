@@ -16,3 +16,4 @@ IMAGENETTE_SYNSETS = [
     "n03445777",
     "n03888257",
 ]
+MODEL_OUTPUT_PATH = "/projects/leelab/models/image"
