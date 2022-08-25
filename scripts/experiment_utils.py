@@ -3,7 +3,7 @@ import argparse
 import os
 import random
 import sys
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import constants
 import numpy as np
@@ -157,15 +157,17 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     return args
 
 
-def get_device(use_gpu: bool, gpu_num: Optional[int] = None) -> str:
-    """Get device name."""
+def get_device(
+    use_gpu: bool, gpu_num: Optional[Union[int, List[int]]] = None
+) -> Union[None, int, List[int]]:
+    """Get device name or indices."""
     if use_gpu:
         if gpu_num is not None:
-            device = f"cuda:{gpu_num}"
+            device = gpu_num
         else:
-            device = "cuda:0"
+            device = 1
     else:
-        device = "cpu"
+        device = None  # None for cpu.
     return device
 
 
