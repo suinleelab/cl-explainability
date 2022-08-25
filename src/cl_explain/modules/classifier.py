@@ -70,9 +70,9 @@ class LitClassifier(pl.LightningModule):
             for i, out in enumerate(outputs):
                 agg_metric_outputs[key] += out[key] * batch_weights[i]
 
-        self.log(f"{subset}/loss", agg_metric_outputs["loss"])
-        self.log(f"{subset}/acc", agg_metric_outputs["acc"])
-        self.log(f"{subset}/kappa", agg_metric_outputs["kappa"])
+        self.log(f"{subset}/loss", agg_metric_outputs["loss"], sync_dist=True)
+        self.log(f"{subset}/acc", agg_metric_outputs["acc"], sync_dist=True)
+        self.log(f"{subset}/kappa", agg_metric_outputs["kappa"], sync_dist=True)
 
     def training_step(self, batch, batch_idx) -> Dict[str, Union[torch.Tensor, int]]:
         return self.step(batch=batch)
