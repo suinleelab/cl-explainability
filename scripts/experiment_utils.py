@@ -1,4 +1,4 @@
-"""Utility functions."""
+"""Utility functions for attribution experiments."""
 import argparse
 import os
 import random
