@@ -198,6 +198,7 @@ def load_data(
         transform_list.append(transforms.RandomVerticalFlip())
         transform_list.append(transforms.RandomHorizontalFlip())
         transform_list.append(transforms.RandomRotation(degrees=30))
+    transform_list.append(transforms.ToTensor())
     if normalize:
         transform_list.append(
             transforms.Normalize(
