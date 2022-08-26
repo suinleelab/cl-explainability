@@ -102,10 +102,13 @@ def main():
             outputs[target]["train_foil_idx"] = train_leftover_idx[: args.foil_size]
 
     print("Computing feature attributions for each class...")
+    explicand_batch_size = args.batch_size
+    if args.attribution_name == "kernel_shap":
+        explicand_batch_size = 1
     for target in tqdm(unique_labels):
         explicand_dataloader = DataLoader(
             Subset(val_dataset, indices=outputs[target]["val_explicand_idx"]),
-            batch_size=args.batch_size,
+            batch_size=explicand_batch_size,
             shuffle=False,
         )
         corpus_dataloader = DataLoader(
