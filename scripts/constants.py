@@ -17,3 +17,4 @@ IMAGENETTE_SYNSETS = [
     "n03888257",
 ]
 MODEL_OUTPUT_PATH = "/projects/leelab/models/image"
+SEED_LIST = [123, 456, 789, 42, 91]
