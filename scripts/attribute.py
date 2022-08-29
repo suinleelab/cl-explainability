@@ -118,7 +118,9 @@ def main():
             shuffle=False,
         )
         if args.explanation_name == "self_weighted":
-            explanation_model = WeightedScore(encoder=encoder)
+            explanation_model = WeightedScore(encoder=encoder, normalize=False)
+        elif args.explanation_name == "normalized_self_weighted":
+            explanation_model = WeightedScore(encoder=encoder, normalize=True)
         elif args.explanation_name == "contrastive_self_weighted":
             foil_dataloader = DataLoader(
                 Subset(train_dataset, indices=outputs[target]["train_foil_idx"]),
