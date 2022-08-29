@@ -2,6 +2,7 @@
 
 import os
 
+import constants
 import pytorch_lightning as pl
 from classifier_utils import (
     get_classifier_output_path,
@@ -37,7 +38,7 @@ def main():
         augment=True,
     )
     train_idx, val_idx = split_train_val_dataset(
-        train_val_dataset, val_size=0.2, seed=42
+        train_val_dataset, val_size=0.2, seed=constants.TRAIN_VAL_SPLIT_SEED
     )  # Keep training and validation set consistent.
     if args.debug:
         train_idx = train_idx[:100]
