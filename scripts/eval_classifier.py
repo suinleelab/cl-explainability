@@ -1,6 +1,7 @@
 """Load and evaluate a classifier network."""
 import os
 
+import constants
 import pytorch_lightning as pl
 from classifier_utils import (
     get_classifier_output_path,
@@ -26,7 +27,7 @@ def main():
         # No data augmentation during evaluation.
     )
     train_idx, val_idx = split_train_val_dataset(
-        train_val_dataset, val_size=0.2, seed=42
+        train_val_dataset, val_size=0.2, seed=constants.TRAIN_VAL_SPLIT_SEED
     )  # Keep training and validation set consistent.
     test_dataset, _, _ = load_data(
         dataset_name=args.dataset_name,
@@ -46,19 +47,19 @@ def main():
         Subset(train_val_dataset, indices=train_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     val_dataloader = DataLoader(
         Subset(train_val_dataset, indices=val_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     test_dataloader = DataLoader(
         Subset(test_dataset, indices=test_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     save_dir = get_classifier_output_path(
         dataset_name=args.dataset_name,

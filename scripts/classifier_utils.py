@@ -82,6 +82,13 @@ def parse_classifier_args(evaluate: bool = False):
         dest="seed",
     )
     parser.add_argument(
+        "--dataloader-num-workers",
+        type=int,
+        default=12,
+        help="number of workers for data loaders",
+        dest="dataloader_num_workers",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="flag for using small number of samples and epochs for debugging",
