@@ -62,7 +62,7 @@ def main():
     elif args.dataset_name in ["cifar"]:
         val_labels = val_dataset.targets
         train_labels = train_dataset.targets
-        unique_labels = torch.arange(10)
+        unique_labels = list(range(constants.NUM_CLASSES_CIFAR))
         train_all_idx = torch.arange(len(train_labels))
     else:
         raise NotImplementedError(
