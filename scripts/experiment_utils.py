@@ -24,7 +24,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "encoder_name",
         type=str,
-        choices=["simclr_x1", "simclr_x2", "simclr_x4"],
+        choices=["simclr_x1", "simclr_x2", "simclr_x4", "simsiam_18"],
         help="name of pre-trained encoder to explain",
     )
     parser.add_argument(
@@ -56,7 +56,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         "--dataset-name",
         type=str,
         default="imagenet",
-        choices=["imagenet", "imagenette2"],
+        choices=["imagenet", "imagenette2", "cifar"],
         help="name of dataset to use",
         dest="dataset_name",
     )
