@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from cl_explain.attributions.random_baseline import RandomBaseline
+from cl_explain.attributions.rise import RISE
 from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusCosineSimilarity,
 )
@@ -202,6 +203,16 @@ def main():
                     baselines=baseline,
                     n_samples=50,
                     stdevs=1.0,
+                )
+            elif args.attribution_name == "rise":
+                attribution_model = RISE(explanation_model)
+                attribution = attribution_model.attribute(
+                    explicand,
+                    grid_shape=(7, 7),
+                    baselines=baseline,
+                    mask_prob=0.5,
+                    n_samples=5000,
+                    normalize_by_mask_prob=True,
                 )
             elif args.attribution_name == "random_baseline":
                 attribution_model = RandomBaseline(explanation_model)

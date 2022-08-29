@@ -47,6 +47,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             "smooth_int_grad",
             "kernel_shap",
             "gradient_shap",
+            "rise",
             "random_baseline",
         ],
         help="name of feature attribution method to use",
