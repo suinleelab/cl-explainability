@@ -28,7 +28,9 @@ else
     batch_size=32
 fi
 
-if [ "${attribution_name}" = "kernel_shap" ]
+# No need for superpixels when explaining cifar
+if [ "${attribution_name}" = "kernel_shap" ] \
+    && [ "${dataset_name}" != "cifar" ]
 then
     superpixel_dim=8
     eval_superpixel_dim=8
