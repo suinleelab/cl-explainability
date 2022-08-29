@@ -46,19 +46,19 @@ def main():
         Subset(train_val_dataset, indices=train_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     val_dataloader = DataLoader(
         Subset(train_val_dataset, indices=val_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     test_dataloader = DataLoader(
         Subset(test_dataset, indices=test_idx),
         batch_size=args.eval_batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     save_dir = get_classifier_output_path(
         dataset_name=args.dataset_name,

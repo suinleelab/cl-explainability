@@ -49,13 +49,13 @@ def main():
         ),  # Training with data augmentation.
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
     val_dataloader = DataLoader(
         Subset(train_val_dataset, indices=val_idx),
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=12,
+        num_workers=args.dataloader_num_workers,
     )
 
     device = get_device(args.use_gpu, args.gpu_num)
