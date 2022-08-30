@@ -1,12 +1,12 @@
 #!/bin/bash
-encoder_name="simclr_x1"
-dataset_name="imagenet"
+encoder_name=${1}
+dataset_name=${2}
+attribution_name=${3}
 
-attribution_name=${1}
-device1=${2}
-device2=${3}
-device3=${4}
-device4=${5}
+device1=${4}
+device2=${5}
+device3=${6}
+device4=${7}
 
 devices=( "${device1}" "${device2}" "${device3}" "${device4}" )
 explanations=(
