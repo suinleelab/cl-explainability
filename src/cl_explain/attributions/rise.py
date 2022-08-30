@@ -59,7 +59,7 @@ class RISE(Attribution):
         """
         batch_size, channel_size, img_h, img_w = inputs.shape
         device = inputs.device
-        scores = 0
+        scores = torch.zeros(batch_size, channel_size, img_h, img_w).to(device)
         for i in range(n_samples):
             masks = self.generate_mask(
                 img_h=img_h,
@@ -79,7 +79,7 @@ class RISE(Attribution):
         scores /= n_samples
         if normalize_by_mask_prob:
             scores /= mask_prob
-        return scores.expand(-1, channel_size, -1, -1)
+        return scores
 
     @staticmethod
     def generate_mask(
