@@ -60,6 +60,11 @@ def main():
         train_labels = [sample[0].split("/")[-2] for sample in train_dataset.samples]
         unique_labels = constants.IMAGENETTE_SYNSETS
         train_all_idx = torch.arange(len(train_dataset.samples))
+    elif args.dataset_name in ["cifar"]:
+        val_labels = val_dataset.targets
+        train_labels = train_dataset.targets
+        unique_labels = list(range(constants.NUM_CLASSES_CIFAR))
+        train_all_idx = torch.arange(len(train_labels))
     else:
         raise NotImplementedError(
             f"--dataset-name={args.dataset_name} is not implemented!"
