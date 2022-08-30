@@ -31,6 +31,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         type=str,
         choices=[
             "self_weighted",
+            "normalized_self_weighted",
             "contrastive_self_weighted",
             "corpus",
             "contrastive_corpus",
@@ -47,6 +48,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             "smooth_int_grad",
             "kernel_shap",
             "gradient_shap",
+            "rise",
             "random_baseline",
         ],
         help="name of feature attribution method to use",
