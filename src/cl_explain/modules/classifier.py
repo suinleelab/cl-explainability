@@ -46,34 +46,33 @@ class LitClassifier(pl.LightningModule):
         """Compute evaluation metrics."""
         loss = F.cross_entropy(out, target)
         pred = out.argmax(dim=-1)
-        acc = (pred == target).float().mean()
-        kappa = cohen_kappa(pred, target, num_classes=pred.size(-1))
-        return {"loss": loss, "acc": acc, "kappa": kappa}
+        return {
+            "loss": loss,
+            "out": out.detach().cpu(),
+            "pred": pred.detach().cpu(),
+            "target": target.detach().cpu(),
+        }
 
     def step(self, batch) -> Dict[str, Union[torch.Tensor, int]]:
         """Generate model output values for a batch of data."""
         x, target = batch
         out = self.evaluate(self(x, apply_eval_head=True), target)
-        out["batch_size"] = x.size(0)
         return out
 
     def epoch_end(
         self, outputs: List[Dict[str, Union[torch.Tensor, int]]], subset: str
     ) -> None:
         """Aggregate evaluation metrics at the end of an epoch."""
-        batch_sizes = [out["batch_size"] for out in outputs]
-        all_sample_size = sum(batch_sizes)
-        batch_weights = [batch_size / all_sample_size for batch_size in batch_sizes]
+        outs = torch.cat([output["out"] for output in outputs])
+        preds = torch.cat([output["pred"] for output in outputs])
+        targets = torch.cat([output["target"] for output in outputs])
+        loss = F.cross_entropy(outs, targets)
+        acc = (preds == targets).float().mean()
+        kappa = cohen_kappa(preds, targets, num_classes=preds.size(-1))
 
-        metric_keys = [key for key in outputs[0].keys() if key != "batch_size"]
-        agg_metric_outputs = {key: 0.0 for key in metric_keys}
-        for key in metric_keys:
-            for i, out in enumerate(outputs):
-                agg_metric_outputs[key] += out[key] * batch_weights[i]
-
-        self.log(f"{subset}/loss", agg_metric_outputs["loss"], sync_dist=True)
-        self.log(f"{subset}/acc", agg_metric_outputs["acc"], sync_dist=True)
-        self.log(f"{subset}/kappa", agg_metric_outputs["kappa"], sync_dist=True)
+        self.log(f"{subset}/loss", loss, sync_dist=True)
+        self.log(f"{subset}/acc", acc, sync_dist=True)
+        self.log(f"{subset}/kappa", kappa, sync_dist=True)
 
     def training_step(self, batch, batch_idx) -> Dict[str, Union[torch.Tensor, int]]:
         return self.step(batch=batch)
