@@ -105,7 +105,7 @@ def parse_classifier_args(evaluate: bool = False):
         parser.add_argument(
             "--eval-batch-size",
             type=int,
-            default=256,
+            default=64,
             help="evaluation batch size for all data loaders",
             dest="eval_batch_size",
         )
