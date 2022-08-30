@@ -87,36 +87,12 @@ class Bottleneck(nn.Module):
         return out
 
 
-VALID_VERSIONS = [18, 34, 50, 101, 152]
-BASIC_VERSIONS = [18, 34]
-NUM_BLOCKS_MAP = {
-    18: [2, 2, 2, 2],
-    34: [3, 4, 6, 3],
-    50: [3, 4, 6, 3],
-    101: [3, 4, 23, 3],
-    152: [3, 8, 36, 3],
-}
-
-
 class ResNet(nn.Module):
     """ResNet model based on torch module."""
 
-    def __init__(self, version=18, low_dim=128):
+    def __init__(self, block, num_blocks, low_dim=128):
         super(ResNet, self).__init__()
         self.in_planes = 64
-
-        if version not in VALID_VERSIONS:
-            raise NotImplementedError(
-                f"Unsupported ResNet version {version}, please use one of "
-                f"the following: {VALID_VERSIONS}"
-            )
-
-        if version in BASIC_VERSIONS:
-            block = BasicBlock
-        else:
-            block = Bottleneck
-
-        num_blocks = NUM_BLOCKS_MAP[version]
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -146,3 +122,28 @@ class ResNet(nn.Module):
         if apply_eval_head:
             out = self.fc(out)
         return out
+
+
+def resnet18(low_dim=128):
+    """ResNet18"""
+    return ResNet(BasicBlock, [2, 2, 2, 2], low_dim)
+
+
+def resnet34(low_dim=128):
+    """ResNet34"""
+    return ResNet(BasicBlock, [3, 4, 6, 3], low_dim)
+
+
+def resnet50(low_dim=128):
+    """ResNet50"""
+    return ResNet(Bottleneck, [3, 4, 6, 3], low_dim)
+
+
+def resnet101(low_dim=128):
+    """ResNet101"""
+    return ResNet(Bottleneck, [3, 4, 23, 3], low_dim)
+
+
+def resnet152(low_dim=128):
+    """ResNet152"""
+    return ResNet(Bottleneck, [3, 8, 36, 3], low_dim)

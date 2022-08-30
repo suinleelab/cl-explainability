@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from cl_explain.data.datasets import MURAImageDataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
+from cl_explain.encoders.simsiam.resnet import resnet18
 
 
 def parse_args(evaluate: bool = False, meta: bool = False):
@@ -23,7 +24,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "encoder_name",
         type=str,
-        choices=["simclr_x1", "simclr_x2", "simclr_x4"],
+        choices=["simclr_x1", "simclr_x2", "simclr_x4", "simsiam_18"],
         help="name of pre-trained encoder to explain",
     )
     parser.add_argument(
@@ -57,7 +58,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         "--dataset-name",
         type=str,
         default="imagenet",
-        choices=["imagenet", "imagenette2"],
+        choices=["imagenet", "imagenette2", "cifar"],
         help="name of dataset to use",
         dest="dataset_name",
     )
@@ -193,21 +194,40 @@ def load_data(
     if dataset_name in ["imagenette2", "imagenet", "mura"]:
         transform_list.append(transforms.Resize(256))
         transform_list.append(transforms.CenterCrop(224))
+    elif dataset_name in ["cifar"]:
+        transform_list.append(
+            transforms.Resize(
+                int(32 * (8 / 7)), interpolation=transforms.InterpolationMode.BICUBIC
+            )
+        )
+        transform_list.append(transforms.CenterCrop(32))
     else:
         raise NotImplementedError(f"{dataset_name} loading is not implemented!")
 
     if augment:
+        if dataset_name in ["cifar"]:
+            raise NotImplementedError(
+                f"{dataset_name} augmentations are not implemented!"
+            )
         transform_list.append(transforms.RandomVerticalFlip())
         transform_list.append(transforms.RandomHorizontalFlip())
         transform_list.append(transforms.RandomRotation(degrees=30))
     transform_list.append(transforms.ToTensor())
     if normalize:
-        transform_list.append(
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225],
+        if dataset_name in ["imagenette2", "imagenet", "mura"]:
+            transform_list.append(
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                )
             )
-        )
+        elif dataset_name in ["cifar"]:
+            transform_list.append(
+                transforms.Normalize(
+                    mean=[0.4914, 0.4822, 0.4465],
+                    std=[0.2023, 0.1994, 0.2010],
+                )
+            )
     transform = transforms.Compose(transform_list)
 
     if dataset_name == "imagenette2":
@@ -235,6 +255,16 @@ def load_data(
         dataset = MURAImageDataset(dataset_path, subset, transform=transform)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         class_map = dataset.classes
+    elif dataset_name == "cifar":
+        is_train = True
+        if subset == "val":
+            is_train = False
+        dataset_path = os.path.join(constants.DATA_PATH, dataset_name + "10")
+        dataset = torchvision.datasets.CIFAR10(
+            dataset_path, train=is_train, transform=transform
+        )
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        class_map = dataset.classes
     else:
         raise NotImplementedError(f"{dataset_name} loading is not implemented!")
     return dataset, dataloader, class_map
@@ -258,6 +288,15 @@ def load_encoder(encoder_name: str) -> nn.Module:
         elif encoder_name == "simclr_x4":
             encoder = resnet50x4()
             state_dict_path = os.path.join(state_dict_path, "resnet50-4x.pth")
+        else:
+            _encoder_not_implemented_error(encoder_name)
+        state_dict = torch.load(state_dict_path, map_location="cpu")
+        encoder.load_state_dict(state_dict["state_dict"])
+    elif "simsiam" in encoder_name:
+        state_dict_path = os.path.join(constants.ENCODER_PATH, "simsiam")
+        if encoder_name == "simsiam_18":
+            encoder = resnet18(low_dim=10)
+            state_dict_path = os.path.join(state_dict_path, "resnet18.pth.tar")
         else:
             _encoder_not_implemented_error(encoder_name)
         state_dict = torch.load(state_dict_path, map_location="cpu")
@@ -317,6 +356,10 @@ def get_image_dataset_meta(dataset_name: str) -> Tuple[int, int, str]:
         img_h = 224
         img_w = 224
         removal = "blurring"  # Appropriate pixel removal operation.
+    elif dataset_name in ["cifar"]:
+        img_h = 32
+        img_w = 32
+        removal = "blurring"
     else:
         raise NotImplementedError(f"dataset={dataset_name} is not implemented!")
     return img_h, img_w, removal
