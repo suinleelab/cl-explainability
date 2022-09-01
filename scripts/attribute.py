@@ -93,6 +93,8 @@ def main():
             .nonzero()
             .flatten()
         )
+        train_nontarget_size = train_nontarget_idx.size(0)
+
         val_target_idx = val_target_idx[torch.randperm(val_target_idx.size(0))]
         train_target_idx = train_target_idx[torch.randperm(train_target_idx.size(0))]
 
@@ -103,24 +105,19 @@ def main():
 
         # Get left-over indices from the training set for foil sampling.
         # Make sure that the non-target training samples and target training samples
-        # have the same ratio after the corpus set has been taken out.
-        train_corpus_prop = args.corpus_size / train_target_idx.size(0)
-        train_leftover_nontarget_size = train_nontarget_idx.size(0) * (
-            1 - train_corpus_prop
-        )
-        train_leftover_nontarget_size = int(train_leftover_nontarget_size)
-        train_leftover_nontarget_idx = train_nontarget_idx[
-            torch.randperm(train_nontarget_idx.size(0))
-        ][:train_leftover_nontarget_size]
+        # have the same ratio before and after the corpus set has been taken out.
+        corpus_prop = args.corpus_size / train_target_idx.size(0)
+        leftover_nontarget_size = int(train_nontarget_size * (1 - corpus_prop))
+        leftover_nontarget_idx = train_nontarget_idx[
+            torch.randperm(train_nontarget_size)
+        ][:leftover_nontarget_size]
 
-        train_leftover_target_idx = set(train_target_idx.numpy()) - set(
+        leftover_target_idx = set(train_target_idx.numpy()) - set(
             train_corpus_idx.numpy()
         )
-        train_leftover_target_idx = torch.LongTensor(list(train_leftover_target_idx))
+        leftover_target_idx = torch.LongTensor(list(leftover_target_idx))
 
-        train_leftover_idx = torch.cat(
-            [train_leftover_nontarget_idx, train_leftover_target_idx]
-        )
+        train_leftover_idx = torch.cat([leftover_nontarget_idx, leftover_target_idx])
         train_leftover_idx = train_leftover_idx[
             torch.randperm(train_leftover_idx.size(0))
         ]
