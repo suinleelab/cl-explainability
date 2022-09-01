@@ -49,11 +49,21 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
+    # Normalize cifar only by default
+    normalize = False
+    if args.dataset_name in ["cifar"]:
+        normalize = True
     val_dataset, _, _ = load_data(
-        dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
+        dataset_name=args.dataset_name,
+        subset="val",
+        batch_size=args.batch_size,
+        normalize=normalize,
     )
     train_dataset, _, _ = load_data(
-        dataset_name=args.dataset_name, subset="train", batch_size=args.batch_size
+        dataset_name=args.dataset_name,
+        subset="train",
+        batch_size=args.batch_size,
+        normalize=normalize,
     )
     if args.dataset_name in ["imagenet", "imagenette2"]:
         val_labels = [sample[0].split("/")[-2] for sample in val_dataset.samples]

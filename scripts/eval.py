@@ -40,11 +40,21 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
+    # Normalize cifar only by default
+    normalize = False
+    if args.dataset_name in ["cifar"]:
+        normalize = True
     val_dataset, _, _ = load_data(
-        dataset_name=args.dataset_name, subset="val", batch_size=args.batch_size
+        dataset_name=args.dataset_name,
+        subset="val",
+        batch_size=args.batch_size,
+        normalize=normalize,
     )
     train_dataset, _, _ = load_data(
-        dataset_name=args.dataset_name, subset="train", batch_size=args.batch_size
+        dataset_name=args.dataset_name,
+        subset="train",
+        batch_size=args.batch_size,
+        normalize=normalize,
     )
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
