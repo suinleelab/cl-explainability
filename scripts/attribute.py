@@ -59,12 +59,10 @@ def main():
         val_labels = [sample[0].split("/")[-2] for sample in val_dataset.samples]
         train_labels = [sample[0].split("/")[-2] for sample in train_dataset.samples]
         unique_labels = constants.IMAGENETTE_SYNSETS
-        train_all_idx = torch.arange(len(train_dataset.samples))
     elif args.dataset_name in ["cifar"]:
         val_labels = val_dataset.targets
         train_labels = train_dataset.targets
         unique_labels = list(range(constants.NUM_CLASSES_CIFAR))
-        train_all_idx = torch.arange(len(train_labels))
     else:
         raise NotImplementedError(
             f"--dataset-name={args.dataset_name} is not implemented!"
@@ -90,6 +88,11 @@ def main():
             .nonzero()
             .flatten()
         )
+        train_nontarget_idx = (
+            torch.Tensor([label != target for label in train_labels])
+            .nonzero()
+            .flatten()
+        )
         val_target_idx = val_target_idx[torch.randperm(val_target_idx.size(0))]
         train_target_idx = train_target_idx[torch.randperm(train_target_idx.size(0))]
 
@@ -98,8 +101,25 @@ def main():
         outputs[target]["val_explicand_idx"] = val_explicand_idx
         outputs[target]["train_corpus_idx"] = train_corpus_idx
 
-        train_leftover_idx = set(train_all_idx.numpy()) - set(train_corpus_idx.numpy())
-        train_leftover_idx = torch.LongTensor(list(train_leftover_idx))
+        # Get left-over indices from the training set for foil sampling.
+        # Make sure that the non-target training samples and target training samples
+        # have the same ratio after the corpus set has been taken out.
+        train_leftover_nontarget_size = train_nontarget_idx.size(0) * (
+            1 - args.corpus_size / train_target_idx.size(0)
+        )
+        train_leftover_nontarget_size = int(train_leftover_nontarget_size)
+        train_leftover_nontarget_idx = train_nontarget_idx[
+            torch.randperm(train_nontarget_idx.size(0))
+        ][:train_leftover_nontarget_size]
+
+        train_leftover_target_idx = set(train_target_idx.numpy()) - set(
+            train_corpus_idx.numpy()
+        )
+        train_leftover_target_idx = torch.LongTensor(list(train_leftover_target_idx))
+
+        train_leftover_idx = torch.cat(
+            [train_leftover_nontarget_idx, train_leftover_target_idx]
+        )
         train_leftover_idx = train_leftover_idx[
             torch.randperm(train_leftover_idx.size(0))
         ]
