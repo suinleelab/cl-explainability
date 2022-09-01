@@ -104,8 +104,9 @@ def main():
         # Get left-over indices from the training set for foil sampling.
         # Make sure that the non-target training samples and target training samples
         # have the same ratio after the corpus set has been taken out.
+        train_corpus_prop = args.corpus_size / train_target_idx.size(0)
         train_leftover_nontarget_size = train_nontarget_idx.size(0) * (
-            1 - args.corpus_size / train_target_idx.size(0)
+            1 - train_corpus_prop
         )
         train_leftover_nontarget_size = int(train_leftover_nontarget_size)
         train_leftover_nontarget_idx = train_nontarget_idx[
