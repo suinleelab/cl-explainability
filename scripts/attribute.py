@@ -31,12 +31,10 @@ from tqdm import tqdm
 from cl_explain.attributions.random_baseline import RandomBaseline
 from cl_explain.attributions.rise import RISE
 from cl_explain.explanations.contrastive_corpus_similarity import (
-    ContrastiveCorpusCosineSimilarity,
+    ContrastiveCorpusSimilarity,
 )
-from cl_explain.explanations.contrastive_weighted_score import (
-    ContrastiveWeightedCosineScore,
-)
-from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
+from cl_explain.explanations.contrastive_weighted_score import ContrastiveWeightedScore
+from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.explanations.weighted_score import WeightedScore
 from cl_explain.utils import make_superpixel_map
 
@@ -163,24 +161,26 @@ def main():
             shuffle=False,
         )
         if args.explanation_name == "self_weighted":
-            explanation_model = WeightedScore(encoder=encoder, normalize=False)
-        elif args.explanation_name == "normalized_self_weighted":
-            explanation_model = WeightedScore(encoder=encoder, normalize=True)
+            explanation_model = WeightedScore(
+                encoder=encoder, normalize=args.normalize_similarity
+            )
         elif args.explanation_name == "contrastive_self_weighted":
             foil_dataloader = DataLoader(
                 Subset(train_dataset, indices=outputs[target]["train_foil_idx"]),
                 batch_size=args.batch_size,
                 shuffle=False,
             )
-            explanation_model = ContrastiveWeightedCosineScore(
+            explanation_model = ContrastiveWeightedScore(
                 encoder=encoder,
                 foil_dataloader=foil_dataloader,
+                normalize=args.normalize_similarity,
                 batch_size=args.batch_size,
             )
         elif args.explanation_name == "corpus":
-            explanation_model = CorpusCosineSimilarity(
+            explanation_model = CorpusSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
+                normalize=args.normalize_similarity,
                 batch_size=args.batch_size,
             )
         elif args.explanation_name == "contrastive_corpus":
@@ -189,10 +189,11 @@ def main():
                 batch_size=args.batch_size,
                 shuffle=False,
             )
-            explanation_model = ContrastiveCorpusCosineSimilarity(
+            explanation_model = ContrastiveCorpusSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 foil_dataloader=foil_dataloader,
+                normalize=args.normalize_similarity,
                 batch_size=args.batch_size,
             )
         else:
@@ -275,6 +276,7 @@ def main():
     result_path = get_result_path(
         dataset_name=args.dataset_name,
         encoder_name=args.encoder_name,
+        normalize_similarity=args.normalize_similarity,
         explanation_name=args.explanation_name,
         attribution_name=args.attribution_name,
         seed=args.seed,
