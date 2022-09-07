@@ -24,7 +24,7 @@ class WeightedScore(ExplanationBase):
             norms (that is, whether to use cosine similarity).
     """
 
-    def __init__(self, encoder: nn.Module, normalize: bool = False) -> None:
+    def __init__(self, encoder: nn.Module, normalize: bool) -> None:
         super().__init__(encoder=encoder)
         self.normalize = normalize
         self.weight = None
