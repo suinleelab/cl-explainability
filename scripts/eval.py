@@ -79,6 +79,7 @@ def main():
         seed=args.seed,
     )
     output_filename = get_output_filename(
+        different_classes=args.different_classes,
         corpus_size=args.corpus_size,
         explanation_name=args.explanation_name,
         foil_size=args.foil_size,

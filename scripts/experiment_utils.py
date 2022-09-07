@@ -61,6 +61,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         dest="normalize_similarity",
     )
     parser.add_argument(
+        "--different-classes",
+        action="store_true",
+        help="flag to have explicands and corpus from different classes",
+        dest="different_classes",
+    )
+    parser.add_argument(
         "--dataset-name",
         type=str,
         default="imagenet",
@@ -346,6 +352,7 @@ def get_result_path(
 
 
 def get_output_filename(
+    different_classes: bool,
     corpus_size: int,
     explanation_name: str,
     foil_size: int,
@@ -356,7 +363,11 @@ def get_output_filename(
     blur_strength: float,
 ) -> str:
     """Get output filename for saving attribution results."""
-    output_filename = "outputs"
+    if different_classes:
+        output_filename = "diff_class_outputs"
+    else:
+        output_filename = "same_class_outputs"
+
     output_filename += f"_explicand_size={explicand_size}"
     if "corpus" in explanation_name:
         output_filename += f"_corpus_size={corpus_size}"

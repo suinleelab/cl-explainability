@@ -100,9 +100,18 @@ def main():
 
     outputs = {target: {} for target in unique_labels}
     for target in unique_labels:
-        val_target_idx = (
-            torch.Tensor([label == target for label in val_labels]).nonzero().flatten()
-        )
+        if args.different_classes:
+            val_explicand_idx = (
+                torch.Tensor([label != target for label in val_labels])
+                .nonzero()
+                .flatten()
+            )
+        else:
+            val_explicand_idx = (
+                torch.Tensor([label == target for label in val_labels])
+                .nonzero()
+                .flatten()
+            )
         train_target_idx = (
             torch.Tensor([label == target for label in train_labels])
             .nonzero()
@@ -115,10 +124,10 @@ def main():
         )
         train_nontarget_size = train_nontarget_idx.size(0)
 
-        val_target_idx = val_target_idx[torch.randperm(val_target_idx.size(0))]
+        val_explicand_idx = val_explicand_idx[torch.randperm(val_explicand_idx.size(0))]
         train_target_idx = train_target_idx[torch.randperm(train_target_idx.size(0))]
 
-        val_explicand_idx = val_target_idx[: args.explicand_size]
+        val_explicand_idx = val_explicand_idx[: args.explicand_size]
         train_corpus_idx = train_target_idx[: args.corpus_size]
         outputs[target]["val_explicand_idx"] = val_explicand_idx
         outputs[target]["train_corpus_idx"] = train_corpus_idx
@@ -283,6 +292,7 @@ def main():
     )
     os.makedirs(result_path, exist_ok=True)
     output_filename = get_output_filename(
+        different_classes=args.different_classes,
         corpus_size=args.corpus_size,
         explanation_name=args.explanation_name,
         foil_size=args.foil_size,
