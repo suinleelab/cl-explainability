@@ -251,7 +251,7 @@ def main():
                     explicand,
                     baselines=baseline,
                     feature_mask=feature_mask,
-                    n_samples=10000,
+                    n_samples=5000,
                 )
             elif args.attribution_name == "gradient_shap":
                 attribution_model = GradientShap(explanation_model)
