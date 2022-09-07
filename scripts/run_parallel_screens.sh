@@ -1,4 +1,5 @@
 #!/bin/bash
+
 encoder_name=${1}
 dataset_name=${2}
 attribution_name=${3}
@@ -7,6 +8,15 @@ device1=${4}
 device2=${5}
 device3=${6}
 device4=${7}
+shift 7
+while getopts "nd" opt
+do
+    case $opt in
+        n)  normalize_similarity=true;;
+        d)  different_classes=true;;
+        *)  exit 1;;
+    esac
+done
 
 devices=( "${device1}" "${device2}" "${device3}" "${device4}" )
 explanations=(
@@ -42,19 +52,40 @@ fi
 for i in {0..3}
 do
     command=""
+    screen_name=""
+
     command+="source /homes/gws/clin25/miniconda3/etc/profile.d/conda.sh;"
     command+=" conda activate cl-explain-env;"
     command+=" python scripts/run.py"
     command+=" ${encoder_name}"
     command+=" ${explanations[i]}"
     command+=" ${attribution_name}"
+
+    if [ "${normalize_similarity}" = true ]
+    then
+        command+=" --normalize-similarity"
+        screen_name+="normalized_"
+    else
+        screen_name+="unnormalized_"
+    fi
+
+    if [ "${different_classes}" = true ]
+    then
+        command+=" --different-classes"
+        screen_name+="diff_class_"
+    else
+        screen_name+="same_class_"
+    fi
+
     command+=" --dataset-name ${dataset_name}"
     command+=" --batch-size ${batch_size}"
     command+=" --use-gpu"
     command+=" --gpu-num ${devices[i]}"
     command+=" --superpixel-dim ${superpixel_dim}"
     command+=" --eval-superpixel-dim ${eval_superpixel_dim}"
-    screen \
-    -dmS "${encoder_name}_${explanations[i]}_${attribution_name}_${dataset_name}" \
-    bash -c "${command}"
+
+    screen_name+="${encoder_name}_${explanations[i]}"
+    screen_name+="_${attribution_name}_${dataset_name}"
+
+    screen -dmS "${screen_name}" bash -c "${command}"
 done
