@@ -33,7 +33,6 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         type=str,
         choices=[
             "self_weighted",
-            "normalized_self_weighted",
             "contrastive_self_weighted",
             "corpus",
             "contrastive_corpus",
@@ -54,6 +53,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             "random_baseline",
         ],
         help="name of feature attribution method to use",
+    )
+    parser.add_argument(
+        "--normalize-similarity",
+        action="store_true",
+        help="flag to normalize dot product similarity to use cosine similarity",
+        dest="normalize_similarity",
     )
     parser.add_argument(
         "--dataset-name",
@@ -320,12 +325,17 @@ def load_encoder(encoder_name: str) -> nn.Module:
 def get_result_path(
     dataset_name: str,
     encoder_name: str,
+    normalize_similarity: bool,
     explanation_name: str,
     attribution_name: str,
     seed: int,
 ) -> str:
     """Generate path for storing results."""
-    method_name = explanation_name + "_" + attribution_name
+    if normalize_similarity:
+        method_name = "normalized_"
+    else:
+        method_name = "unnormalized_"
+    method_name += explanation_name + "_" + attribution_name
     return os.path.join(
         constants.RESULT_PATH,
         dataset_name,
