@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from cl_explain.data.datasets import MURAImageDataset
 from cl_explain.encoders.simclr.resnet_wider import resnet50x1, resnet50x2, resnet50x4
 from cl_explain.encoders.simsiam.resnet import resnet18
+from cl_explain.modules.classifier import LitClassifier
 
 
 def parse_args(evaluate: bool = False, meta: bool = False):
@@ -24,7 +25,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
     parser.add_argument(
         "encoder_name",
         type=str,
-        choices=["simclr_x1", "simclr_x2", "simclr_x4", "simsiam_18"],
+        choices=["simclr_x1", "simsiam_18", "classifier_18"],
         help="name of pre-trained encoder to explain",
     )
     parser.add_argument(
@@ -58,7 +59,7 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         "--dataset-name",
         type=str,
         default="imagenet",
-        choices=["imagenet", "imagenette2", "cifar"],
+        choices=["imagenet", "cifar", "mura"],
         help="name of dataset to use",
         dest="dataset_name",
     )
@@ -217,15 +218,15 @@ def load_data(
         if dataset_name in ["imagenette2", "imagenet", "mura"]:
             transform_list.append(
                 transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
+                    mean=constants.IMAGENET_MEAN,
+                    std=constants.IMAGENET_STD,
                 )
             )
         elif dataset_name in ["cifar"]:
             transform_list.append(
                 transforms.Normalize(
-                    mean=[0.4914, 0.4822, 0.4465],
-                    std=[0.2023, 0.1994, 0.2010],
+                    mean=constants.CIFAR_MEAN,
+                    std=constants.CIFAR_STD,
                 )
             )
     transform = transforms.Compose(transform_list)
@@ -301,6 +302,16 @@ def load_encoder(encoder_name: str) -> nn.Module:
             _encoder_not_implemented_error(encoder_name)
         state_dict = torch.load(state_dict_path, map_location="cpu")
         encoder.load_state_dict(state_dict["state_dict"])
+    elif "classifier" in encoder_name:
+        ckpt_path = os.path.join(constants.ENCODER_PATH, "classifier")
+        if encoder_name == "classifier_18":
+            model = LitClassifier.load_from_checkpoint(
+                os.path.join(ckpt_path, "resnet18.ckpt")
+            )
+            model.freeze()  # Essential to ensure model is usable for inference.
+            encoder = model.network
+        else:
+            _encoder_not_implemented_error(encoder_name)
     else:
         _encoder_not_implemented_error(encoder_name)
     return encoder
@@ -360,6 +371,49 @@ def get_image_dataset_meta(dataset_name: str) -> Tuple[int, int, str]:
         img_h = 32
         img_w = 32
         removal = "blurring"
+    elif dataset_name in ["mura"]:
+        img_h = 224
+        img_w = 224
+        removal = "black"  # MURA X-ray images have non-informative black backgrounds.
     else:
         raise NotImplementedError(f"dataset={dataset_name} is not implemented!")
     return img_h, img_w, removal
+
+
+def get_black_baseline(
+    explicand: torch.Tensor, dataset_name: str, normalize: bool = True
+) -> torch.Tensor:
+    """
+    Get black baseline values for a batch of explicand inputs.
+
+    Args:
+    ----
+        explicand: A batch of explicands with shape `(batch_size, *)`, where `*`
+            indicates the model input size for one sample.
+        dataset_name: Name of the dataset where the explicands come from. This is to
+            determine the channel means and standard deviations for normalization.
+        normalize: Whether to normalize the black baseline values.
+
+    Returns
+    -------
+        Black baseline values with shape `(batch_size, *)`, on the same device as
+        `explicand`.
+    """
+    black_baseline = torch.zeros_like(explicand)
+    if normalize:
+        if dataset_name in ["imagenette2", "imagenet", "mura"]:
+            normalization_function = transforms.Normalize(
+                mean=constants.IMAGENET_MEAN,
+                std=constants.IMAGENET_STD,
+            )
+        elif dataset_name in ["cifar"]:
+            normalization_function = transforms.Normalize(
+                mean=constants.CIFAR_MEAN,
+                std=constants.CIFAR_STD,
+            )
+        else:
+            raise NotImplementedError(
+                f"dataset_name={dataset_name} is not implemented!"
+            )
+        black_baseline = normalization_function(black_baseline)
+    return black_baseline

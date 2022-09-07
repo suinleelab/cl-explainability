@@ -2,11 +2,13 @@
 
 import os
 import pickle
+from functools import partial
 
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from experiment_utils import (
+    get_black_baseline,
     get_device,
     get_image_dataset_meta,
     get_output_filename,
@@ -40,7 +42,7 @@ def main():
     encoder.eval()
     encoder.to(device)
     print("Loading dataset...")
-    # Normalize cifar only by default
+    # Normalize CIFAR-10 and MURA.
     normalize = False
     if args.dataset_name in ["cifar", "mura"]:
         normalize = True
@@ -61,6 +63,10 @@ def main():
     img_h, img_w, removal = get_image_dataset_meta(args.dataset_name)
     if removal == "blurring":
         get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
+    elif removal == "black":
+        get_baseline = partial(
+            get_black_baseline, dataset_name=args.dataset_name, normalize=normalize
+        )
     else:
         raise NotImplementedError(f"removal={removal} is not implemented!")
 
