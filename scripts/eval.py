@@ -22,10 +22,10 @@ from torch.utils.data import DataLoader, Subset, TensorDataset
 from tqdm import tqdm
 
 from cl_explain.explanations.contrastive_corpus_similarity import (
-    ContrastiveCorpusCosineSimilarity,
+    ContrastiveCorpusSimilarity,
 )
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
-from cl_explain.explanations.corpus_similarity import CorpusCosineSimilarity
+from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.measures.pred_prob import PredProb
 from cl_explain.measures.rep_shift import RepShift
 from cl_explain.metrics.ablation import ImageAblation, compute_auc
@@ -73,6 +73,7 @@ def main():
     result_path = get_result_path(
         dataset_name=args.dataset_name,
         encoder_name=args.encoder_name,
+        normalize_similarity=args.normalize_similarity,
         explanation_name=args.explanation_name,
         attribution_name=args.attribution_name,
         seed=args.seed,
@@ -129,22 +130,39 @@ def main():
         )
 
         model_list = [
-            CorpusCosineSimilarity(
+            CorpusSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
+                normalize=True,
                 batch_size=args.batch_size,
             ),
-            ContrastiveCorpusCosineSimilarity(
+            CorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                normalize=False,
+                batch_size=args.batch_size,
+            ),
+            ContrastiveCorpusSimilarity(
                 encoder=encoder,
                 corpus_dataloader=corpus_dataloader,
                 foil_dataloader=eval_foil_dataloader,
+                normalize=True,
+                batch_size=args.batch_size,
+            ),
+            ContrastiveCorpusSimilarity(
+                encoder=encoder,
+                corpus_dataloader=corpus_dataloader,
+                foil_dataloader=eval_foil_dataloader,
+                normalize=False,
                 batch_size=args.batch_size,
             ),
             CorpusMajorityProb(encoder=encoder, corpus_dataloader=corpus_dataloader),
         ]
         model_name_list = [
             "corpus_cosine_similarity",
+            "corpus_dot_product_similarity",
             "contrastive_corpus_cosine_similarity",
+            "contrastive_corpus_dot_product_similarity",
             "corpus_majority_prob",
         ]
 
