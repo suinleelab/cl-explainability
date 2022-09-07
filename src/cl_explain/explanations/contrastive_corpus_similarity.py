@@ -4,8 +4,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from cl_explain.explanations.corpus_similarity import (
-    CorpusCosineSimilarity,
     CorpusGaussianSimilarity,
+    CorpusSimilarity,
 )
 
 
@@ -55,15 +55,17 @@ class ContrastiveCorpusGaussianSimilarity(CorpusGaussianSimilarity):
         return corpus_similarity / (corpus_similarity + foil_similarity)
 
 
-class ContrastiveCorpusCosineSimilarity(CorpusCosineSimilarity):
+class ContrastiveCorpusSimilarity(CorpusSimilarity):
     """
-    Module for an explicand's cosine similarity score with a corpus vs. a foil.
+    An explicand's cosine or dot product similarity score with a corpus vs. a foil.
 
     Args:
     ----
        encoder: Encoder module to explain.
        corpus_dataloader: Data loader of corpus examples to be encoded by `encoder`.
        foil_dataloader: Data loader of foil examples to be encoded by `encoder`.
+       normalize: Whether to normalize dot product similarity by product of vector
+           norms (that is, whether to use cosine similarity).
        batch_size: Mini-batch size for loading the corpus and foil representations.
     """
 
@@ -72,11 +74,13 @@ class ContrastiveCorpusCosineSimilarity(CorpusCosineSimilarity):
         encoder: nn.Module,
         corpus_dataloader: DataLoader,
         foil_dataloader: DataLoader,
+        normalize: bool,
         batch_size: int = 64,
     ) -> None:
         super().__init__(
             encoder=encoder,
             corpus_dataloader=corpus_dataloader,
+            normalize=normalize,
             batch_size=batch_size,
         )
         self.foil_dataloader = foil_dataloader
