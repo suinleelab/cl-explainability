@@ -156,6 +156,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             help="number of foil samples for evaluating contrastive metrics",
             dest="eval_foil_size",
         )
+        parser.add_argument(
+            "--comprehensive",
+            action="store_true",
+            help="whether to evaluate with a comprehensive list of metrics",
+            dest="comprehensive",
+        )
     if meta:
         parser.add_argument(
             "--mode",
@@ -164,6 +170,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             choices=["attribute_only", "eval_only", "attribute_and_eval"],
             help="for meta script, whether to run attribute.py and or eval.py",
             dest="mode",
+        )
+        parser.add_argument(
+            "--one-seed",
+            action="store_true",
+            help="whether to run experiment with only the specified seed",
+            dest="one_seed",
         )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")

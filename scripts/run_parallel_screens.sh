@@ -64,17 +64,17 @@ do
     if [ "${normalize_similarity}" = true ]
     then
         command+=" --normalize-similarity"
-        screen_name+="normalized_"
+        screen_name+="norm_"
     else
-        screen_name+="unnormalized_"
+        screen_name+="unnorm_"
     fi
 
     if [ "${different_classes}" = true ]
     then
         command+=" --different-classes"
-        screen_name+="diff_class_"
+        screen_name+="diff_"
     else
-        screen_name+="same_class_"
+        screen_name+="same_"
     fi
 
     command+=" --dataset-name ${dataset_name}"

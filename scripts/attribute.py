@@ -242,7 +242,7 @@ def main():
                     nt_type="smoothgrad",
                     nt_samples=25,
                     nt_samples_batch_size=args.batch_size,
-                    stdevs=1.0,
+                    stdevs=0.2,
                     baselines=baseline,
                 )
             elif args.attribution_name == "kernel_shap":
@@ -251,7 +251,7 @@ def main():
                     explicand,
                     baselines=baseline,
                     feature_mask=feature_mask,
-                    n_samples=10000,
+                    n_samples=5000,
                 )
             elif args.attribution_name == "gradient_shap":
                 attribution_model = GradientShap(explanation_model)
@@ -259,7 +259,7 @@ def main():
                     explicand,
                     baselines=baseline,
                     n_samples=50,
-                    stdevs=1.0,
+                    stdevs=0.2,
                 )
             elif args.attribution_name == "rise":
                 attribution_model = RISE(explanation_model)
