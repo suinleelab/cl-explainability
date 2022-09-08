@@ -13,12 +13,8 @@ explanations = [
 attribution_choices = [
     "vanilla_grad",
     "int_grad",
-    "smooth_vanilla_grad",
-    "smooth_int_grad",
-    "gradient_shap",
     "rise",
     "random_baseline",
-    "kernel_shap",
 ]
 
 
