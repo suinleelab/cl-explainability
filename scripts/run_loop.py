@@ -24,13 +24,13 @@ def main():
     parser.add_argument(
         "encoder_name",
         type=str,
-        choices=["simclr_x1", "simclr_x2", "simclr_x4", "simsiam_18"],
+        choices=["simclr_x1", "simsiam_18", "classifier_18"],
         help="name of pre-trained encoder to explain",
     )
     parser.add_argument(
         "dataset_name",
         type=str,
-        choices=["imagenet", "imagenette2", "cifar"],
+        choices=["imagenet", "cifar", "mura"],
         help="name of dataset to use",
     )
     parser.add_argument(
@@ -43,6 +43,12 @@ def main():
         "device",
         type=int,
         help="index of GPU to use",
+    )
+    parser.add_argument(
+        "--normalize-similarity",
+        action="store_true",
+        help="flag to normalize dot product similarity to use cosine similarity",
+        dest="normalize_similarity",
     )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")
@@ -69,17 +75,22 @@ def main():
     else:
         attributions = [args.attribution_name]
 
-    for attribution in attributions:
-        for explanation in explanations:
-            command_args = args.encoder_name
-            command_args += f" {explanation}"
-            command_args += f" {attribution}"
-            command_args += f" --dataset-name {args.dataset_name}"
-            command_args += f" --batch-size {batch_size}"
-            command_args += f" --use-gpu --gpu-num {args.device}"
-            command_args += f" --superpixel-dim {superpixel_dim}"
-            command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
-            os.system("python scripts/run.py " + command_args)
+    for different_classes in [False, True]:
+        for attribution in attributions:
+            for explanation in explanations:
+                command_args = args.encoder_name
+                command_args += f" {explanation}"
+                command_args += f" {attribution}"
+                if args.normalize_similarity:
+                    command_args += " --normalize-similarity"
+                if different_classes:
+                    command_args += " --different-classes"
+                command_args += f" --dataset-name {args.dataset_name}"
+                command_args += f" --batch-size {batch_size}"
+                command_args += f" --use-gpu --gpu-num {args.device}"
+                command_args += f" --superpixel-dim {superpixel_dim}"
+                command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
+                os.system("python scripts/run.py " + command_args)
 
 
 if __name__ == "__main__":

@@ -13,6 +13,10 @@ def main():
         command_args = args.encoder_name
         command_args += f" {args.explanation_name}"
         command_args += f" {args.attribution_name}"
+        if args.normalize_similarity:
+            command_args += " --normalize-similarity"
+        if args.different_classes:
+            command_args += " --different-classes"
         command_args += f" --dataset-name {args.dataset_name}"
         command_args += f" --explicand-size {args.explicand_size}"
         command_args += f" --corpus-size {args.corpus_size}"
@@ -44,11 +48,6 @@ def main():
             os.system("python scripts/attribute.py " + command_args)
         if run_eval:
             os.system("python scripts/eval.py " + eval_command_args)
-            os.system(
-                "python scripts/eval.py "
-                + eval_command_args
-                + " --take-attribution-abs"
-            )
 
 
 if __name__ == "__main__":
