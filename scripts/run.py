@@ -9,7 +9,11 @@ from experiment_utils import parse_args
 def main():
     """Main function."""
     args = parse_args(evaluate=True, meta=True)
-    for seed in constants.SEED_LIST:
+    if args.one_seed:
+        seed_list = [args.seed]
+    else:
+        seed_list = constants.SEED_LIST
+    for seed in seed_list:
         command_args = args.encoder_name
         command_args += f" {args.explanation_name}"
         command_args += f" {args.attribution_name}"

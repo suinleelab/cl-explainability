@@ -165,6 +165,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             help="for meta script, whether to run attribute.py and or eval.py",
             dest="mode",
         )
+        parser.add_argument(
+            "--one-seed",
+            action="store_true",
+            help="whether to run experiment with only the specified seed",
+            dest="one_seed",
+        )
     args = parser.parse_args()
     print(f"Running {sys.argv[0]} with arguments")
     for arg in vars(args):
