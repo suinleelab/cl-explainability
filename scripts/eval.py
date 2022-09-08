@@ -286,9 +286,14 @@ def main():
         ]
 
     print("Saving results...")
-    result_filename = output_filename.replace("outputs", "eval_results").replace(
-        ".pkl", ""
-    )
+    if args.comprehensive:
+        result_filename = output_filename.replace(
+            "outputs", "comprehensive_eval_results"
+        ).replace(".pkl", "")
+    else:
+        result_filename = output_filename.replace("outputs", "eval_results").replace(
+            ".pkl", ""
+        )
     result_filename += f"_eval_superpixel_dim={args.eval_superpixel_dim}"
     result_filename += f"_eval_foil_size={args.eval_foil_size}"
     if args.take_attribution_abs:
