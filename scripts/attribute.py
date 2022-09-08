@@ -262,10 +262,14 @@ def main():
                     stdevs=0.2,
                 )
             elif args.attribution_name == "rise":
+                if args.dataset_name in ["cifar"]:
+                    grid_shape = (4, 4)
+                else:
+                    grid_shape = (7, 7)
                 attribution_model = RISE(explanation_model)
                 attribution = attribution_model.attribute(
                     explicand,
-                    grid_shape=(7, 7),
+                    grid_shape=grid_shape,
                     baselines=baseline,
                     mask_prob=0.5,
                     n_samples=5000,
