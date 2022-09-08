@@ -10,6 +10,13 @@ explanations = [
     "contrastive_corpus",
 ]
 
+attribution_choices = [
+    "vanilla_grad",
+    "int_grad",
+    "rise",
+    "random_baseline",
+]
+
 
 def main():
     """Main function."""
@@ -29,16 +36,7 @@ def main():
     parser.add_argument(
         "attribution_name",
         type=str,
-        choices=[
-            "vanilla_grad",
-            "int_grad",
-            "smooth_vanilla_grad",
-            "smooth_int_grad",
-            "kernel_shap",
-            "gradient_shap",
-            "rise",
-            "random_baseline",
-        ],
+        choices=attribution_choices + ["all"],
         help="name of feature attribution method to use",
     )
     parser.add_argument(
@@ -71,21 +69,28 @@ def main():
         superpixel_dim = 1
         eval_superpixel_dim = 1
 
+    # Run through all attributions or a specific one
+    if args.attribution_name == "all":
+        attributions = attribution_choices
+    else:
+        attributions = [args.attribution_name]
+
     for different_classes in [False, True]:
-        for explanation in explanations:
-            command_args = args.encoder_name
-            command_args += f" {explanation}"
-            command_args += f" {args.attribution_name}"
-            if args.normalize_similarity:
-                command_args += " --normalize-similarity"
-            if different_classes:
-                command_args += " --different-classes"
-            command_args += f" --dataset-name {args.dataset_name}"
-            command_args += f" --batch-size {batch_size}"
-            command_args += f" --use-gpu --gpu-num {args.device}"
-            command_args += f" --superpixel-dim {superpixel_dim}"
-            command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
-            os.system("python scripts/run.py " + command_args)
+        for attribution in attributions:
+            for explanation in explanations:
+                command_args = args.encoder_name
+                command_args += f" {explanation}"
+                command_args += f" {attribution}"
+                if args.normalize_similarity:
+                    command_args += " --normalize-similarity"
+                if different_classes:
+                    command_args += " --different-classes"
+                command_args += f" --dataset-name {args.dataset_name}"
+                command_args += f" --batch-size {batch_size}"
+                command_args += f" --use-gpu --gpu-num {args.device}"
+                command_args += f" --superpixel-dim {superpixel_dim}"
+                command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
+                os.system("python scripts/run.py " + command_args)
 
 
 if __name__ == "__main__":
