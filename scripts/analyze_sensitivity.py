@@ -3,7 +3,7 @@ import argparse
 import os
 import sys
 
-attribution_choices = ["int_grad", "rise"]
+attribution_choices = ["int_grad", "rise", "gradient_shap"]
 
 corpus_explanation_list = ["corpus", "contrastive_corpus"]
 corpus_size_list = [5, 20, 50, 100, 200]
