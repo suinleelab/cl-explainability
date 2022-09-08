@@ -131,41 +131,44 @@ def main():
         )
 
         model_list = [
-            CorpusSimilarity(
-                encoder=encoder,
-                corpus_dataloader=corpus_dataloader,
-                normalize=True,
-                batch_size=args.batch_size,
-            ),
-            CorpusSimilarity(
-                encoder=encoder,
-                corpus_dataloader=corpus_dataloader,
-                normalize=False,
-                batch_size=args.batch_size,
-            ),
-            ContrastiveCorpusSimilarity(
-                encoder=encoder,
-                corpus_dataloader=corpus_dataloader,
-                foil_dataloader=eval_foil_dataloader,
-                normalize=True,
-                batch_size=args.batch_size,
-            ),
-            ContrastiveCorpusSimilarity(
-                encoder=encoder,
-                corpus_dataloader=corpus_dataloader,
-                foil_dataloader=eval_foil_dataloader,
-                normalize=False,
-                batch_size=args.batch_size,
-            ),
             CorpusMajorityProb(encoder=encoder, corpus_dataloader=corpus_dataloader),
         ]
-        model_name_list = [
-            "corpus_cosine_similarity",
-            "corpus_dot_product_similarity",
-            "contrastive_corpus_cosine_similarity",
-            "contrastive_corpus_dot_product_similarity",
-            "corpus_majority_prob",
-        ]
+        model_name_list = ["corpus_majority_prob"]
+        if args.comprehensive:
+            model_list += [
+                CorpusSimilarity(
+                    encoder=encoder,
+                    corpus_dataloader=corpus_dataloader,
+                    normalize=True,
+                    batch_size=args.batch_size,
+                ),
+                CorpusSimilarity(
+                    encoder=encoder,
+                    corpus_dataloader=corpus_dataloader,
+                    normalize=False,
+                    batch_size=args.batch_size,
+                ),
+                ContrastiveCorpusSimilarity(
+                    encoder=encoder,
+                    corpus_dataloader=corpus_dataloader,
+                    foil_dataloader=eval_foil_dataloader,
+                    normalize=True,
+                    batch_size=args.batch_size,
+                ),
+                ContrastiveCorpusSimilarity(
+                    encoder=encoder,
+                    corpus_dataloader=corpus_dataloader,
+                    foil_dataloader=eval_foil_dataloader,
+                    normalize=False,
+                    batch_size=args.batch_size,
+                ),
+            ]
+            model_name_list += [
+                "corpus_cosine_similarity",
+                "corpus_dot_product_similarity",
+                "contrastive_corpus_cosine_similarity",
+                "contrastive_corpus_dot_product_similarity",
+            ]
 
         measure_list = [PredProb(encoder=encoder), RepShift(encoder=encoder)]
         measure_name_list = ["explicand_pred_prob", "explicand_rep_shift"]

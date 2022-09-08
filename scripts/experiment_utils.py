@@ -156,6 +156,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             help="number of foil samples for evaluating contrastive metrics",
             dest="eval_foil_size",
         )
+        parser.add_argument(
+            "--comprehensive",
+            action="store_true",
+            help="whether to evaluate with a comprehensive list of metrics",
+            dest="comprehensive",
+        )
     if meta:
         parser.add_argument(
             "--mode",
