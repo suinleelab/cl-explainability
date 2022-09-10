@@ -33,7 +33,6 @@ def parse_augmentation_use_case_args():
         "--synset",
         type=str,
         default="n02102040",  # English springer as default.
-        choices=constants.IMAGENETTE_SYNSETS,
         help="synset for the Imagenet class to study",
         dest="synset",
     )
