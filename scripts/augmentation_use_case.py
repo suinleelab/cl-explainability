@@ -167,6 +167,18 @@ def main():
     encoder.eval()
     encoder.to(device)
 
+    synset_mapping = {}
+    with open(
+        os.path.join(constants.DATA_PATH, "imagenet", "LOC_synset_mapping.txt"), "r"
+    ) as handle:
+        lines = handle.readlines()
+    for line in lines:
+        synset = line.split(" ")[0]
+        label = " ".join(line.split(" ")[1:])
+        label = label.replace("\n", "")
+        label = label.split(",")[0]  # Only take the first among all equivalent labels.
+        synset_mapping[synset] = label
+
     val_dataset_path = os.path.join(
         constants.DATA_PATH, "imagenet", "ILSVRC/Data/CLS-LOC", "val"
     )
@@ -251,11 +263,16 @@ def main():
     os.makedirs(result_path, exist_ok=True)
 
     overall_img_counter = 0
+    pred_list = []
     for img_list in tqdm(aug_dataloader):
         batch_size = img_list[0].size(0)
         explanation_model.generate_weight(
             img_list[0].detach().clone().to(device)
         )  # Original image as corpus.
+
+        pred = encoder(img_list[0].to(device), apply_eval_head=True).argmax(dim=-1)
+        pred = pred.detach().cpu()
+        pred_list.append(pred)
 
         for j, img in enumerate(img_list):
             img = img.to(device)  # Original or augmented image as explicand.
@@ -306,6 +323,7 @@ def main():
                 )
                 img_counter += 1
         overall_img_counter += batch_size
+    pred_list = torch.cat(pred_list)
 
     print("Plotting results...")
     with PdfPages(
@@ -321,6 +339,14 @@ def main():
 
         for i in tqdm(range(overall_img_counter)):
             img_result_path = os.path.join(result_path, f"img_{i}")
+            pred_synset = train_dataset.classes[pred_list[i]]
+            pred_label = synset_mapping[pred_synset]
+            if pred_synset == args.synset:
+                pred_info = "Correct classification."
+            else:
+                pred_info = "Misclassification."
+            pred_info += f" Predicted: {pred_synset} ({pred_label})."
+
             for j, aug_name in enumerate(aug_name_list):
                 aug_img = torch.load(
                     os.path.join(img_result_path, f"{aug_name}_img.pt"),
@@ -337,6 +363,8 @@ def main():
                 axes[aug_img_plot_idx, j].imshow(aug_img.permute(1, 2, 0))
                 axes[aug_img_plot_idx, j].set_xticks([])
                 axes[aug_img_plot_idx, j].set_yticks([])
+                if j == 0:
+                    axes[aug_img_plot_idx, j].set_title(pred_info)
 
                 aug_attribution = torch.nn.functional.relu(
                     aug_attribution
