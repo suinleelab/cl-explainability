@@ -1,5 +1,7 @@
 """Explanation behaviors based on an explicand representation similarity to a corpus."""
 
+from typing import Optional
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -18,6 +20,9 @@ class CorpusGaussianSimilarity(CorpusBasedExplanation):
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
         sigma2: The variance parameter for the Gaussian similarity kernel.
+        explicand_encoder: Optional alternative encoder for explicand.  Same as
+            encoder by default.
+        device: Optional device to perform encoding on.
     """
 
     def __init__(
@@ -26,11 +31,22 @@ class CorpusGaussianSimilarity(CorpusBasedExplanation):
         corpus_dataloader: DataLoader,
         batch_size: int = 64,
         sigma2: float = 1.0,
+        explicand_encoder: Optional[nn.Module] = None,
+        device: Optional[int] = None,
     ) -> None:
         super().__init__(
-            encoder=encoder, corpus_dataloader=corpus_dataloader, batch_size=batch_size
+            encoder=encoder,
+            corpus_dataloader=corpus_dataloader,
+            batch_size=batch_size,
+            device=device,
         )
         self.sigma2 = sigma2
+
+        # By default use same encoder for explicand as for the corpus
+        if not explicand_encoder:
+            self.explicand_encoder = encoder
+        else:
+            self.explicand_encoder = explicand_encoder
 
     def forward(self, explicand: torch.Tensor) -> torch.Tensor:
         return self._compute_similarity(
@@ -40,7 +56,7 @@ class CorpusGaussianSimilarity(CorpusBasedExplanation):
     def _compute_similarity(
         self, explicand: torch.Tensor, rep_dataloader: DataLoader, rep_data_size: int
     ) -> torch.Tensor:
-        explicand_rep = self.encoder(explicand)
+        explicand_rep = self.explicand_encoder(explicand)
         similarity = 0
         for (x,) in rep_dataloader:
             x = x.to(explicand_rep.device)
@@ -64,6 +80,9 @@ class CorpusSimilarity(CorpusBasedExplanation):
             norms (that is, whether to use cosine similarity).
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
+        explicand_encoder: Optional alternative encoder for explicand.  Same as
+            encoder by default.
+        device: Optional device to perform encoding on.
     """
 
     def __init__(
@@ -72,11 +91,22 @@ class CorpusSimilarity(CorpusBasedExplanation):
         corpus_dataloader: DataLoader,
         normalize: bool,
         batch_size: int = 64,
+        explicand_encoder: Optional[nn.Module] = None,
+        device: Optional[int] = None,
     ) -> None:
         super().__init__(
-            encoder=encoder, corpus_dataloader=corpus_dataloader, batch_size=batch_size
+            encoder=encoder,
+            corpus_dataloader=corpus_dataloader,
+            batch_size=batch_size,
+            device=device,
         )
         self.normalize = normalize
+
+        # By default use same encoder for explicand as for the corpus
+        if not explicand_encoder:
+            self.explicand_encoder = encoder
+        else:
+            self.explicand_encoder = explicand_encoder
 
     def forward(self, explicand: torch.Tensor) -> torch.Tensor:
         return self._compute_similarity(
@@ -86,7 +116,7 @@ class CorpusSimilarity(CorpusBasedExplanation):
     def _compute_similarity(
         self, explicand: torch.Tensor, rep_dataloader: DataLoader, rep_data_size: int
     ) -> torch.Tensor:
-        explicand_rep = self.encoder(explicand)
+        explicand_rep = self.explicand_encoder(explicand)
         similarity = 0
         for (x,) in rep_dataloader:
             x = x.to(explicand_rep.device)

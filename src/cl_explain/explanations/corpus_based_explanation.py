@@ -1,4 +1,6 @@
 """Representation learning explanation behaviors based on a corpus."""
+from typing import Optional
+
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -15,6 +17,7 @@ class CorpusBasedExplanation(ExplanationBase):
         corpus_dataloader: Data loader of corpus examples to be encoded by `encoder`.
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
+        device: Optional device to perform encoding on.
     """
 
     def __init__(
@@ -22,8 +25,9 @@ class CorpusBasedExplanation(ExplanationBase):
         encoder: nn.Module,
         corpus_dataloader: DataLoader,
         batch_size: int = 64,
+        device: Optional[int] = None,
     ) -> None:
-        super().__init__(encoder=encoder)
+        super().__init__(encoder=encoder, device=device)
         self.corpus_dataloader = corpus_dataloader
 
         self.corpus_rep = self._encode(self.corpus_dataloader)
