@@ -5,10 +5,11 @@ import sys
 
 attributions = [
     "int_grad",
+    "gradient_shap",
     "rise",
 ]
 
-# Experiments defined by tuples (explicand, foil, corpus)
+# Experiments defined by tuples (target_name, explicand, foil, corpus)
 experiments = [
     ("self_weighted", "astronaut", "none", "none"),
     ("contrastive_corpus", "astronaut", "woman", "cifar100"),

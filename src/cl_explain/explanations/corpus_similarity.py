@@ -80,8 +80,6 @@ class CorpusSimilarity(CorpusBasedExplanation):
             norms (that is, whether to use cosine similarity).
         batch_size: Mini-batch size for loading the corpus representations. This is
             useful when the entire corpus set fails to fit in compute memory.
-        target_encoder: Optional alternative encoder for corpus.  Same as encoder
-            by default.
         explicand_encoder: Optional alternative encoder for explicand.  Same as
             encoder by default.
         device: Optional device to perform encoding on.

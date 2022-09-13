@@ -23,7 +23,7 @@ from cl_explain.explanations.contrastive_corpus_similarity import (
 from cl_explain.explanations.weighted_score import WeightedScore
 
 
-def parse_augmentation_use_case_args():
+def parse_clip_use_case_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -108,7 +108,7 @@ def plot_results(explicand_raw, attribution, is_zero_center, fname):
     plt.xticks([])
     plt.yticks([])
 
-    # Plot label-free attributions
+    # Plot attributions
     plt.subplot(n_row, n_col, 2)
     if is_zero_center:
         m = flat_attribution.abs().max()
@@ -124,7 +124,7 @@ def plot_results(explicand_raw, attribution, is_zero_center, fname):
 
 def main():
     """Main function."""
-    args = parse_augmentation_use_case_args()
+    args = parse_clip_use_case_args()
     pl.seed_everything(args.seed, workers=True)
     device = get_device(args.use_gpu, args.gpu_num)
 
@@ -185,12 +185,12 @@ def main():
             else:
                 foil_tokens = [f"This is a photo of a {args.foil_name}"]
 
-            # Convert to dataloaders
-            corpus_tokens = clip.tokenize(corpus_tokens).cuda(device)
+            # Convert to dataloaders, add fake labels for compatibility with _encode()
+            corpus_tokens = clip.tokenize(corpus_tokens)
             corpus_dataloader = DataLoader(
                 TensorDataset(corpus_tokens, torch.ones(corpus_tokens.shape[0]))
             )
-            foil_tokens = clip.tokenize(foil_tokens).cuda(device)
+            foil_tokens = clip.tokenize(foil_tokens)
             foil_dataloader = DataLoader(
                 TensorDataset(foil_tokens, torch.ones(foil_tokens.shape[0]))
             )
