@@ -102,7 +102,9 @@ def main():
     for target in unique_labels:
         if args.different_classes:
             val_explicand_idx = (
-                torch.Tensor([label != target for label in val_labels])
+                torch.Tensor(
+                    [label != target and label in unique_labels for label in val_labels]
+                )
                 .nonzero()
                 .flatten()
             )
