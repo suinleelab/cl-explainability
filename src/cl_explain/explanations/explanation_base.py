@@ -1,4 +1,6 @@
 """Base classes for all representation explanation target functions."""
+from typing import Optional
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -11,18 +13,23 @@ class ExplanationBase(nn.Module):
     Args:
     ----
         encoder: Encoder module to explain.
+        device: Optional device to perform encoding on.
     """
 
     def __init__(
         self,
         encoder: nn.Module,
+        device: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.encoder = encoder
+        self.device = device
 
     def _encode(self, dataloader: DataLoader) -> torch.Tensor:
         """Encode all data in a data loader into representations."""
-        encoder_device = [param.device for param in self.encoder.parameters()][0]
+        encoder_device = self.device
+        if not encoder_device:
+            encoder_device = [param.device for param in self.encoder.parameters()][0]
         rep = []
         for x, _ in dataloader:
             x = x.to(encoder_device)
