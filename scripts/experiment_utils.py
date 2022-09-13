@@ -407,7 +407,7 @@ def get_image_dataset_meta(dataset_name: str) -> Tuple[int, int, str]:
     elif dataset_name in ["mura"]:
         img_h = 224
         img_w = 224
-        removal = "black"  # MURA X-ray images have non-informative black backgrounds.
+        removal = "blurring"
     else:
         raise NotImplementedError(f"dataset={dataset_name} is not implemented!")
     return img_h, img_w, removal
