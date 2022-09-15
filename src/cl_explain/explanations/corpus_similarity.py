@@ -101,6 +101,9 @@ class CorpusSimilarity(CorpusBasedExplanation):
             device=device,
         )
         self.normalize = normalize
+        self.corpus_rep_mean = self._encode_mean(
+            self.corpus_dataloader, normalize=self.normalize
+        )
 
         # By default use same encoder for explicand as for the corpus
         if not explicand_encoder:
@@ -108,10 +111,45 @@ class CorpusSimilarity(CorpusBasedExplanation):
         else:
             self.explicand_encoder = explicand_encoder
 
-    def forward(self, explicand: torch.Tensor) -> torch.Tensor:
+    def _rep_mean_forward(self, explicand: torch.Tensor) -> torch.Tensor:
+        explicand_rep = self.encoder(explicand)
+        corpus_similarity = (
+            explicand_rep * self.corpus_rep_mean.to(explicand_rep.device)
+        ).sum(dim=-1)
+        if self.normalize:
+            corpus_similarity /= explicand_rep.norm(dim=-1)
+        return corpus_similarity
+
+    def _rep_pairwise_forward(self, explicand: torch.Tensor) -> torch.Tensor:
         return self._compute_similarity(
             explicand, self.corpus_rep_dataloader, self.corpus_size
         )
+
+    def forward(
+        self, explicand: torch.Tensor, implementation: str = "mean"
+    ) -> torch.Tensor:
+        """
+        Forward  pass.
+
+        Args:
+        ----
+            explicand: Input explicands to explain, with shape `(batch_size, *)`, where
+                * denotes the encoder input size of one sample.
+            implementation: "mean" for using the foil representation mean to compute
+                similarity. "pairwise" for computing the similarity between each
+                explicand and all foil samples then averaging. The two implementations
+                return the same results.
+        """
+        available_implementations = ["mean", "pairwise"]
+        if implementation == "mean":
+            return self._rep_mean_forward(explicand)
+        elif implementation == "pairwise":
+            return self._rep_pairwise_forward(explicand)
+        else:
+            raise NotImplementedError(
+                f"implementation={implementation} is"
+                f" not one of {available_implementations}!"
+            )
 
     def _compute_similarity(
         self, explicand: torch.Tensor, rep_dataloader: DataLoader, rep_data_size: int

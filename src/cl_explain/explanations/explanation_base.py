@@ -37,6 +37,34 @@ class ExplanationBase(nn.Module):
             rep.append(x)
         return torch.cat(rep)
 
+    def _encode_mean(self, dataloader: DataLoader, normalize: bool) -> torch.Tensor:
+        """
+        Compute representation mean of all data.
+
+        Args:
+        ----
+            dataloader: Dataloader of all data. Each iteration loads a tuple of encoder
+                input and the input's label. The label is not used.
+            normalize: Whether to compute the mean of l2-normalized representations
+                or just the mean of representations.
+
+        Returns
+        -------
+            A representation mean tensor with size `representation_size`.
+        """
+        encoder_device = self.device
+        if not encoder_device:
+            encoder_device = [param.device for param in self.encoder.parameters()][0]
+        rep = []
+        for x, _ in dataloader:
+            x = x.to(encoder_device)
+            x = self.encoder(x).detach()  # Detach right away to minimize memory usage.
+            if normalize:
+                x /= x.norm(dim=-1).unsqueeze(-1)
+            x = x.cpu()
+            rep.append(x)
+        return torch.cat(rep).mean(dim=0)
+
     @staticmethod
     def _compute_difference_norm(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Compute pairwise difference norms."""
