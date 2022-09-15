@@ -42,11 +42,11 @@ class ContrastiveWeightedScore(WeightedScore):
     def _rep_mean_forward(self, explicand: torch.Tensor) -> torch.Tensor:
         weight_similarity = self._compute_pointwise_similarity(explicand)
         explicand_rep = self.encoder(explicand)
-        if self.normalize:
-            explicand_rep /= explicand_rep.norm(dim=-1).unsqueeze(-1)
         foil_similarity = (
             explicand_rep * self.foil_rep_mean.to(explicand_rep.device)
         ).sum(dim=-1)
+        if self.normalize:
+            foil_similarity /= explicand_rep.norm(dim=-1)
         return weight_similarity - foil_similarity
 
     def _rep_pairwise_forward(self, explicand: torch.Tensor) -> torch.Tensor:

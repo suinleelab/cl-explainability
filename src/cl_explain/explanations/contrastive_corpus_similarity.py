@@ -113,14 +113,15 @@ class ContrastiveCorpusSimilarity(CorpusSimilarity):
 
     def _rep_mean_forward(self, explicand: torch.Tensor) -> torch.Tensor:
         explicand_rep = self.encoder(explicand)
-        if self.normalize:
-            explicand_rep /= explicand_rep.norm(dim=-1).unsqueeze(-1)
         corpus_similarity = (
             explicand_rep * self.corpus_rep_mean.to(explicand_rep.device)
         ).sum(dim=-1)
         foil_similarity = (
             explicand_rep * self.foil_rep_mean.to(explicand_rep.device)
         ).sum(dim=-1)
+        if self.normalize:
+            corpus_similarity /= explicand_rep.norm(dim=-1)
+            foil_similarity /= explicand_rep.norm(dim=-1)
         return corpus_similarity - foil_similarity
 
     def _rep_pairwise_forward(self, explicand: torch.Tensor) -> torch.Tensor:
