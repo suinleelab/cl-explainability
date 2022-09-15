@@ -107,8 +107,23 @@ class ContrastiveCorpusSimilarity(CorpusSimilarity):
             batch_size=batch_size,
             shuffle=False,
         )
+        self.foil_rep_mean = self._encode_mean(
+            self.foil_dataloader, normalize=self.normalize
+        )
 
-    def forward(self, explicand: torch.Tensor) -> torch.Tensor:
+    def _rep_mean_forward(self, explicand: torch.Tensor) -> torch.Tensor:
+        explicand_rep = self.encoder(explicand)
+        if self.normalize:
+            explicand_rep /= explicand_rep.norm(dim=-1).unsqueeze(-1)
+        corpus_similarity = (
+            explicand_rep * self.corpus_rep_mean.to(explicand_rep.device)
+        ).sum(dim=-1)
+        foil_similarity = (
+            explicand_rep * self.foil_rep_mean.to(explicand_rep.device)
+        ).sum(dim=-1)
+        return corpus_similarity - foil_similarity
+
+    def _rep_pairwise_forward(self, explicand: torch.Tensor) -> torch.Tensor:
         corpus_similarity = self._compute_similarity(
             explicand, self.corpus_rep_dataloader, self.corpus_size
         )
@@ -116,3 +131,29 @@ class ContrastiveCorpusSimilarity(CorpusSimilarity):
             explicand, self.foil_rep_dataloader, self.foil_size
         )
         return corpus_similarity - foil_similarity
+
+    def forward(
+        self, explicand: torch.Tensor, implementation: str = "mean"
+    ) -> torch.Tensor:
+        """
+        Forward  pass.
+
+        Args:
+        ----
+            explicand: Input explicands to explain, with shape `(batch_size, *)`, where
+                * denotes the encoder input size of one sample.
+            implementation: "mean" for using the foil representation mean to compute
+                similarity. "pairwise" for computing the similarity between each
+                explicand and all foil samples then averaging. The two implementations
+                return the same results.
+        """
+        available_implementations = ["mean", "pairwise"]
+        if implementation == "mean":
+            return self._rep_mean_forward(explicand)
+        elif implementation == "pairwise":
+            return self._rep_pairwise_forward(explicand)
+        else:
+            raise NotImplementedError(
+                f"implementation={implementation} is"
+                f" not one of {available_implementations}!"
+            )
