@@ -23,5 +23,6 @@ CIFAR_STD = [0.2023, 0.1994, 0.2010]
 NUM_CLASSES_CIFAR = 10
 NUM_CLASSES_MURA = 2
 MODEL_OUTPUT_PATH = "/projects/leelab/models/image"
+CLIP_DATA_PATH = "/projects/leelab/cl-explainability/archive/clip_use_case"
 SEED_LIST = [123, 456, 789, 42, 91]
 TRAIN_VAL_SPLIT_SEED = 42
