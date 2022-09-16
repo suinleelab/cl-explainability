@@ -9,11 +9,10 @@ device2=${5}
 device3=${6}
 device4=${7}
 shift 7
-while getopts "nd" opt
+while getopts "n" opt
 do
     case $opt in
         n)  normalize_similarity=true;;
-        d)  different_classes=true;;
         *)  exit 1;;
     esac
 done
@@ -51,6 +50,12 @@ fi
 
 for i in {0..3}
 do
+    device="${devices[i]}"
+    if [ "${device}" = "-1" ]
+    then
+        continue
+    fi
+
     command=""
     screen_name=""
 
@@ -69,18 +74,10 @@ do
         screen_name+="unnorm_"
     fi
 
-    if [ "${different_classes}" = true ]
-    then
-        command+=" --different-classes"
-        screen_name+="diff_"
-    else
-        screen_name+="same_"
-    fi
-
     command+=" --dataset-name ${dataset_name}"
     command+=" --batch-size ${batch_size}"
     command+=" --use-gpu"
-    command+=" --gpu-num ${devices[i]}"
+    command+=" --gpu-num ${device}"
     command+=" --superpixel-dim ${superpixel_dim}"
     command+=" --eval-superpixel-dim ${eval_superpixel_dim}"
 

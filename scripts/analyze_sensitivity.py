@@ -90,20 +90,17 @@ def main():
             batch_size = 32
         for parameter_val in parameter_val_list:
             for explanation in explanation_list:
-                for different_classes in [False, True]:
-                    command_args = args.encoder_name
-                    command_args += f" {explanation}"
-                    command_args += f" {attribution}"
-                    if args.normalize_similarity:
-                        command_args += " --normalize-similarity"
-                    if different_classes:
-                        command_args += " --different-classes"
-                    command_args += f" --{parameter_arg} {parameter_val}"
-                    command_args += f" --dataset-name {dataset_name}"
-                    command_args += f" --batch-size {batch_size}"
-                    command_args += f" --use-gpu --gpu-num {args.gpu_num}"
-                    command_args += f" --seed {args.seed}"
-                    os.system(f" python scripts/run.py {command_args} --one-seed")
+                command_args = args.encoder_name
+                command_args += f" {explanation}"
+                command_args += f" {attribution}"
+                if args.normalize_similarity:
+                    command_args += " --normalize-similarity"
+                command_args += f" --{parameter_arg} {parameter_val}"
+                command_args += f" --dataset-name {dataset_name}"
+                command_args += f" --batch-size {batch_size}"
+                command_args += f" --use-gpu --gpu-num {args.gpu_num}"
+                command_args += f" --seed {args.seed}"
+                os.system(f" python scripts/run.py {command_args} --one-seed")
 
 
 if __name__ == "__main__":
