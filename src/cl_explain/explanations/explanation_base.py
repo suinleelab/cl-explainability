@@ -24,11 +24,12 @@ class ExplanationBase(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.device = device
+        print(self.device)
 
     def _encode(self, dataloader: DataLoader) -> torch.Tensor:
         """Encode all data in a data loader into representations."""
         encoder_device = self.device
-        if not encoder_device:
+        if encoder_device is None:
             encoder_device = [param.device for param in self.encoder.parameters()][0]
         rep = []
         for x, _ in dataloader:
@@ -53,7 +54,7 @@ class ExplanationBase(nn.Module):
             A representation mean tensor with size `representation_size`.
         """
         encoder_device = self.device
-        if not encoder_device:
+        if encoder_device is None:
             encoder_device = [param.device for param in self.encoder.parameters()][0]
         rep = []
         for x, _ in dataloader:
