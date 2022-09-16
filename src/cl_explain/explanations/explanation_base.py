@@ -24,7 +24,6 @@ class ExplanationBase(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.device = device
-        print(self.device)
 
     def _encode(self, dataloader: DataLoader) -> torch.Tensor:
         """Encode all data in a data loader into representations."""
