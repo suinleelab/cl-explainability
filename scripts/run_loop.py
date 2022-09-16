@@ -75,22 +75,19 @@ def main():
     else:
         attributions = [args.attribution_name]
 
-    for different_classes in [False, True]:
-        for attribution in attributions:
-            for explanation in explanations:
-                command_args = args.encoder_name
-                command_args += f" {explanation}"
-                command_args += f" {attribution}"
-                if args.normalize_similarity:
-                    command_args += " --normalize-similarity"
-                if different_classes:
-                    command_args += " --different-classes"
-                command_args += f" --dataset-name {args.dataset_name}"
-                command_args += f" --batch-size {batch_size}"
-                command_args += f" --use-gpu --gpu-num {args.device}"
-                command_args += f" --superpixel-dim {superpixel_dim}"
-                command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
-                os.system("python scripts/run.py " + command_args)
+    for attribution in attributions:
+        for explanation in explanations:
+            command_args = args.encoder_name
+            command_args += f" {explanation}"
+            command_args += f" {attribution}"
+            if args.normalize_similarity:
+                command_args += " --normalize-similarity"
+            command_args += f" --dataset-name {args.dataset_name}"
+            command_args += f" --batch-size {batch_size}"
+            command_args += f" --use-gpu --gpu-num {args.device}"
+            command_args += f" --superpixel-dim {superpixel_dim}"
+            command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
+            os.system("python scripts/run.py " + command_args)
 
 
 if __name__ == "__main__":
