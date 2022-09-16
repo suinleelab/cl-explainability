@@ -70,6 +70,12 @@ def parse_augmentation_use_case_args():
         dest="gpu_num",
     )
     parser.add_argument(
+        "--plot-only",
+        action="store_true",
+        help="flag to plot existing attribution results without running attribution",
+        dest="plot_only",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=123,
@@ -203,6 +209,9 @@ def main():
         val_dataloader_dict[key] = DataLoader(
             val_transform_dataset, batch_size=len(val_synset_indices), shuffle=False
         )
+    classes = val_dataloader_dict["original"].dataset.dataset.classes
+    class_to_idx = val_dataloader_dict["original"].dataset.dataset.class_to_idx
+
     original_img, _ = next(iter(val_dataloader_dict["original"]))
     flip_img = flip(original_img)
     crop_img, _ = next(iter(val_dataloader_dict["crop"]))
@@ -223,6 +232,7 @@ def main():
         erase_img,
         rotate_img,
     )
+    num_explicands = aug_dataset.tensors[0].size(0)
     aug_dataloader = DataLoader(aug_dataset, batch_size=args.batch_size, shuffle=False)
     aug_name_list = [
         "original",
@@ -235,118 +245,134 @@ def main():
         "rotate",
     ]
 
-    print("Setting up foil loader...")
-    train_dataset = torchvision.datasets.ImageFolder(
-        train_dataset_path,
-        transform=transform_dict["original"],
-    )
-    foil_indices = torch.arange(len(train_dataset.samples))
-    foil_indices = foil_indices[torch.randperm(foil_indices.size(0))][: args.foil_size]
-    foil_dataloader = DataLoader(
-        Subset(train_dataset, indices=foil_indices),
-        batch_size=args.batch_size,
-        shuffle=False,
-    )
-
-    print("Running and saving attribution...")
-    # Run and save feature attribution and the corresponding image.
-    explanation_model = ContrastiveWeightedScore(
-        encoder=encoder,
-        foil_dataloader=foil_dataloader,
-        normalize=True,
-        batch_size=args.batch_size,
-    )
     result_path = os.path.join(
         constants.RESULT_PATH, "augmentation_use_case", f"{args.seed}", args.synset
     )
     os.makedirs(result_path, exist_ok=True)
 
-    overall_img_counter = 0
-    pred_list = []
+    if not args.plot_only:
+        print("Setting up foil loader...")
+        train_dataset = torchvision.datasets.ImageFolder(
+            train_dataset_path,
+            transform=transform_dict["original"],
+        )
+        foil_indices = torch.arange(len(train_dataset.samples))
+        foil_indices = foil_indices[torch.randperm(foil_indices.size(0))][
+            : args.foil_size
+        ]
+        foil_dataloader = DataLoader(
+            Subset(train_dataset, indices=foil_indices),
+            batch_size=args.batch_size,
+            shuffle=False,
+        )
+        explanation_model = ContrastiveWeightedScore(
+            encoder=encoder,
+            foil_dataloader=foil_dataloader,
+            normalize=True,
+            batch_size=args.batch_size,
+        )
+
+        print("Running and saving attribution...")
+        overall_img_counter = 0
+        for img_list in tqdm(aug_dataloader):
+            batch_size = img_list[0].size(0)
+            explanation_model.generate_weight(
+                img_list[0].detach().clone().to(device)
+            )  # Original image as corpus.
+
+            for j, img in enumerate(img_list):
+                img = img.to(device)  # Original or augmented image as explicand.
+                baseline = get_baseline(img)
+                img.requires_grad = True
+
+                if args.attribution_name == "int_grad":
+                    attribution_model = IntegratedGradients(explanation_model)
+                    attribution = attribution_model.attribute(img, baselines=baseline)
+                elif args.attribution_name == "gradient_shap":
+                    attribution_model = GradientShap(explanation_model)
+                    attribution = attribution_model.attribute(
+                        img,
+                        baselines=baseline,
+                        n_samples=50,
+                        stdevs=0.2,
+                    )
+                elif args.attribution_name == "rise":
+                    attribution_model = RISE(explanation_model)
+                    attribution = attribution_model.attribute(
+                        img,
+                        grid_shape=(7, 7),
+                        baselines=baseline,
+                        mask_prob=0.5,
+                        n_samples=5000,
+                        normalize_by_mask_prob=True,
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"{args.attribution_name} attribution is not implemented!"
+                    )
+
+                attribution = attribution.detach().cpu()
+                aug_name = aug_name_list[j]
+                img_counter = overall_img_counter
+                for i in range(batch_size):
+                    img_result_path = os.path.join(result_path, f"img_{img_counter}")
+                    os.makedirs(img_result_path, exist_ok=True)
+                    torch.save(
+                        img[i].detach().cpu(),
+                        os.path.join(img_result_path, f"{aug_name}_img.pt"),
+                    )
+                    torch.save(
+                        attribution[i],
+                        os.path.join(
+                            img_result_path, f"{aug_name}_{args.attribution_name}.pt"
+                        ),
+                    )
+                    img_counter += 1
+            overall_img_counter += batch_size
+
+    true_idx = class_to_idx[args.synset]
+    true_pred_prob_list = [[] for _ in range(len(aug_name_list))]
+    max_pred_prob_list = [[] for _ in range(len(aug_name_list))]
+    pred_list = [[] for _ in range(len(aug_name_list))]
     for img_list in tqdm(aug_dataloader):
-        batch_size = img_list[0].size(0)
-        explanation_model.generate_weight(
-            img_list[0].detach().clone().to(device)
-        )  # Original image as corpus.
-
-        pred = encoder(img_list[0].to(device), apply_eval_head=True).argmax(dim=-1)
-        pred = pred.detach().cpu()
-        pred_list.append(pred)
-
         for j, img in enumerate(img_list):
-            img = img.to(device)  # Original or augmented image as explicand.
-            baseline = get_baseline(img)
-            img.requires_grad = True
-
-            if args.attribution_name == "int_grad":
-                attribution_model = IntegratedGradients(explanation_model)
-                attribution = attribution_model.attribute(img, baselines=baseline)
-            elif args.attribution_name == "gradient_shap":
-                attribution_model = GradientShap(explanation_model)
-                attribution = attribution_model.attribute(
-                    img,
-                    baselines=baseline,
-                    n_samples=50,
-                    stdevs=0.2,
-                )
-            elif args.attribution_name == "rise":
-                attribution_model = RISE(explanation_model)
-                attribution = attribution_model.attribute(
-                    img,
-                    grid_shape=(7, 7),
-                    baselines=baseline,
-                    mask_prob=0.5,
-                    n_samples=5000,
-                    normalize_by_mask_prob=True,
-                )
-            else:
-                raise NotImplementedError(
-                    f"{args.attribution_name} attribution is not implemented!"
-                )
-
-            attribution = attribution.detach().cpu()
-            aug_name = aug_name_list[j]
-            img_counter = overall_img_counter
-            for i in range(batch_size):
-                img_result_path = os.path.join(result_path, f"img_{img_counter}")
-                os.makedirs(img_result_path, exist_ok=True)
-                torch.save(
-                    img[i].detach().cpu(),
-                    os.path.join(img_result_path, f"{aug_name}_img.pt"),
-                )
-                torch.save(
-                    attribution[i],
-                    os.path.join(
-                        img_result_path, f"{aug_name}_{args.attribution_name}.pt"
-                    ),
-                )
-                img_counter += 1
-        overall_img_counter += batch_size
-    pred_list = torch.cat(pred_list)
+            pred_prob = (
+                encoder(img.to(device), apply_eval_head=True).softmax(dim=-1).detach()
+            )
+            true_pred_prob_list[j].append(pred_prob[:, true_idx].cpu())
+            max_pred_prob, pred = pred_prob.max(dim=-1)
+            max_pred_prob_list[j].append(max_pred_prob.cpu())
+            pred_list[j].append(pred.cpu())
+    true_pred_prob_list = [
+        torch.cat(true_pred_prob) for true_pred_prob in true_pred_prob_list
+    ]
+    max_pred_prob_list = [
+        torch.cat(max_pred_prob) for max_pred_prob in max_pred_prob_list
+    ]
+    pred_list = [torch.cat(pred) for pred in pred_list]
 
     print("Plotting results...")
     with PdfPages(
         os.path.join(result_path, f"all_{args.attribution_name}_results.pdf")
     ) as pdf:
-        num_img_per_page = 5
+        num_img_per_page = 4
         page_img_counter = 0
         fig, axes = plt.subplots(
             ncols=len(aug_name_list),
-            nrows=2 * num_img_per_page,
-            figsize=(24, 6 * num_img_per_page),
+            nrows=3 * num_img_per_page,
+            figsize=(28, 11 * num_img_per_page),
         )
 
-        for i in tqdm(range(overall_img_counter)):
+        for i in tqdm(range(num_explicands)):
             img_result_path = os.path.join(result_path, f"img_{i}")
-            pred_synset = train_dataset.classes[pred_list[i]]
-            pred_label = synset_mapping[pred_synset]
-            if pred_synset == args.synset:
-                pred_info = "Correct classification."
-            else:
-                pred_info = "Misclassification."
-            pred_info += f" Predicted: {pred_synset} ({pred_label})."
-
             for j, aug_name in enumerate(aug_name_list):
+                true_pred_prob = true_pred_prob_list[j][i]
+                max_pred_prob = max_pred_prob_list[j][i]
+                pred_label = synset_mapping[classes[pred_list[j][i]]]
+                pred_info = f"Pred: {pred_label}"
+                pred_info += f"\nPred prob: {max_pred_prob:.3f}"
+                pred_info += f"\nLabel prob: {true_pred_prob:.3f}"
+
                 aug_img = torch.load(
                     os.path.join(img_result_path, f"{aug_name}_img.pt"),
                     map_location="cpu",
@@ -358,36 +384,63 @@ def main():
                     map_location="cpu",
                 ).mean(dim=0)
 
-                aug_img_plot_idx = page_img_counter * 2
+                aug_img_plot_idx = page_img_counter * 3
+
+                # Raw images.
                 axes[aug_img_plot_idx, j].imshow(aug_img.permute(1, 2, 0))
                 axes[aug_img_plot_idx, j].set_xticks([])
                 axes[aug_img_plot_idx, j].set_yticks([])
-                if j == 0:
-                    axes[aug_img_plot_idx, j].set_title(pred_info)
+                axes[aug_img_plot_idx, j].set_title(pred_info)
 
-                aug_attribution = torch.nn.functional.relu(
-                    aug_attribution
-                )  # Focus on positive attributions for this use case.
-                aug_attribution_scale = aug_attribution.max()
-                axes[aug_img_plot_idx + 1, j].imshow(
-                    aug_attribution,
-                    cmap="seismic",
-                    vmin=-aug_attribution_scale,
-                    vmax=aug_attribution_scale,
-                )
+                if args.attribution_name in ["int_grad", "gradient_shape"]:
+                    aug_attribution = torch.nn.functional.relu(
+                        aug_attribution
+                    )  # Focus on positive attributions.
+                    vmin = -aug_attribution.max()
+                    vmax = aug_attribution.max()
+                    cmap = "seismic"
+                else:
+                    vmin = aug_attribution.min()
+                    vmax = aug_attribution.max()
+                    cmap = "jet"
+
+                # Overlay attributions on raw images.
+                axes[aug_img_plot_idx + 1, j].imshow(aug_img.permute(1, 2, 0))
                 axes[aug_img_plot_idx + 1, j].set_xticks([])
                 axes[aug_img_plot_idx + 1, j].set_yticks([])
+                axes[aug_img_plot_idx + 1, j].imshow(
+                    aug_attribution,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                    alpha=0.8,
+                )
+
+                # Attributions only.
+                axes[aug_img_plot_idx + 2, j].imshow(
+                    aug_attribution,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                )
+                axes[aug_img_plot_idx + 2, j].set_xticks([])
+                axes[aug_img_plot_idx + 2, j].set_yticks([])
 
             page_img_counter += 1
             if page_img_counter == num_img_per_page:
                 page_img_counter = 0
+                plt.tight_layout()
                 pdf.savefig()
                 plt.close(fig)
                 fig, axes = plt.subplots(
                     ncols=len(aug_name_list),
-                    nrows=2 * num_img_per_page,
-                    figsize=(24, 6 * num_img_per_page),
+                    nrows=3 * num_img_per_page,
+                    figsize=(28, 11 * num_img_per_page),
                 )
+        if num_explicands % num_img_per_page:
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close(fig)
     print("Done!")
 
 
