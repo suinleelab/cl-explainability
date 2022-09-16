@@ -41,7 +41,7 @@ def parse_clip_use_case_args():
     parser.add_argument(
         "explicand_name",
         type=str,
-        choices=["astronaut", "camera"],
+        choices=["astronaut", "camera", "dogs", "dog_cat", "zebra"],
         help="name of explicand image",
     )
     parser.add_argument(
@@ -145,17 +145,17 @@ def main():
     encoder.cuda(device).eval()
 
     print("Loading explicand and baseline...")
-    if args.explicand_name == "astronaut":
-        explicand_fname = "astronaut.png"
-    elif args.explicand_name == "camera":
-        explicand_fname = "camera.png"
+    if args.explicand_name in ["astronaut", "camera"]:
+        image_path = skimage.data_dir
+        explicand_fname = args.explicand_name + ".png"
+    elif args.explicand_name in ["dog_cat", "dogs", "zebra"]:
+        image_path = constants.CLIP_DATA_PATH
+        explicand_fname = args.explicand_name + ".jpg"
     else:
         raise NotImplementedError(
             f"{args.explicand_name} explicand_name is not implemented!"
         )
-    explicand_raw = Image.open(os.path.join(skimage.data_dir, explicand_fname)).convert(
-        "RGB"
-    )
+    explicand_raw = Image.open(os.path.join(image_path, explicand_fname)).convert("RGB")
     explicand = torch.unsqueeze(preprocess(explicand_raw).cuda(device), 0)
     get_baseline = transforms.GaussianBlur(21, sigma=args.blur_strength).to(device)
     baseline = get_baseline(explicand)

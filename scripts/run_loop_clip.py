@@ -23,6 +23,23 @@ experiments = [
     ("self_weighted", "camera", "none", "none"),
     ("contrastive_corpus", "camera", "man", "cifar100"),
     ("contrastive_corpus", "camera", "camera", "cifar100"),
+    ("self_weighted", "dog_cat", "none", "none"),
+    ("contrastive_corpus", "dog_cat", "dog", "cifar100"),
+    ("contrastive_corpus", "dog_cat", "cat", "cifar100"),
+    ("contrastive_corpus", "dog_cat", "dog", "cat"),
+    ("contrastive_corpus", "dog_cat", "cat", "dog"),
+    ("self_weighted", "dogs", "none", "none"),
+    ("contrastive_corpus", "dogs", "dog", "cifar100"),
+    ("contrastive_corpus", "dogs", "truck", "cifar100"),
+    ("contrastive_corpus", "dogs", "dog", "truck"),
+    ("contrastive_corpus", "dogs", "truck", "dog"),
+    ("self_weighted", "zebra", "none", "none"),
+    ("contrastive_corpus", "zebra", "zebra", "cifar100"),
+    ("contrastive_corpus", "zebra", "stripes", "cifar100"),
+    ("contrastive_corpus", "zebra", "horse", "cifar100"),
+    ("contrastive_corpus", "zebra", "zebra", "stripes"),
+    ("contrastive_corpus", "zebra", "stripes", "zebra"),
+    ("contrastive_corpus", "zebra", "zebra", "horse"),
 ]
 
 
