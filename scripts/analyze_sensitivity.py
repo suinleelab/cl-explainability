@@ -9,7 +9,7 @@ corpus_explanation_list = ["corpus", "contrastive_corpus"]
 corpus_size_list = [5, 20, 50, 100, 200]
 
 foil_explanation_list = ["contrastive_self_weighted", "contrastive_corpus"]
-foil_size_list = [100, 500, 1500, 2500, 5000]
+foil_size_list = [100, 500, 2500, 5000]  # Foil size of 1500 is already run as default.
 
 dataset_map = {
     "simclr_x1": "imagenet",
