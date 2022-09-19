@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import skimage
 import torch
-import torchvision.transforms as transforms
 from captum.attr import GradientShap, IntegratedGradients
 from experiment_utils import get_device
 from PIL import Image
 from torch.utils.data import DataLoader, TensorDataset
+from torchvision import transforms
 from torchvision.datasets import CIFAR100
 
 from cl_explain.attributions.rise import RISE
@@ -41,7 +41,6 @@ def parse_clip_use_case_args():
     parser.add_argument(
         "explicand_name",
         type=str,
-        choices=["astronaut", "camera", "dogs", "dog_cat", "zebra"],
         help="name of explicand image",
     )
     parser.add_argument(
@@ -87,7 +86,7 @@ def parse_clip_use_case_args():
     return args
 
 
-def plot_results(explicand_raw, attribution, is_zero_center, fname):
+def plot_results(explicand_raw, attribution, is_zero_center, preprocess, fname):
     """
     Visualize explicand and attributions.
 
@@ -96,6 +95,7 @@ def plot_results(explicand_raw, attribution, is_zero_center, fname):
         explicand_raw: An unprocessed explicand image.
         attribution: An attribution tensor with the same shape as the explicand.
         is_zero_center: A boolean describing whether to center the color map.
+        preprocess: clip preprocessing for resizing original image in overlay.
         fname: A filename where the figure will be saved.
     """
     flat_attribution = attribution.cpu()[0].mean(0)
@@ -110,12 +110,14 @@ def plot_results(explicand_raw, attribution, is_zero_center, fname):
 
     # Plot attributions
     plt.subplot(n_row, n_col, 2)
+    transform = transforms.Compose(preprocess.transforms[:-1])
+    plt.imshow(transform(explicand_raw).permute(1, 2, 0))
     if is_zero_center:
         m = flat_attribution.abs().max()
-        plt.imshow(flat_attribution, vmin=-m, vmax=m, cmap="seismic")
+        plt.imshow(flat_attribution, vmin=-m, vmax=m, cmap="seismic", alpha=0.8)
     else:
         m1, m2 = flat_attribution.min(), flat_attribution.max()
-        plt.imshow(flat_attribution, vmin=m1, vmax=m2, cmap="seismic")
+        plt.imshow(flat_attribution, vmin=m1, vmax=m2, cmap="seismic", alpha=0.8)
     plt.xticks([])
     plt.yticks([])
 
@@ -140,15 +142,34 @@ def main():
     result_fname = os.path.join(explicand_result_path, fname + ".pt")
     fig_fname = os.path.join(explicand_result_path, fname + ".pdf")
 
+    # If results and figure exists, skip completely
+    if os.path.exists(result_fname) and os.path.exists(fig_fname):
+        print("Skipping, experiment already complete")
+        return
+
     print("Loading encoder...")
     encoder, preprocess = clip.load("ViT-B/32")
     encoder.cuda(device).eval()
 
     print("Loading explicand and baseline...")
-    if args.explicand_name in ["astronaut", "camera"]:
+    skimages = ["astronaut", "camera"]
+    clip_images = [
+        "dog_cat",
+        "dogs",
+        "zebra",
+        "bee",
+        "mountain",
+        "boy_and_girl",
+        "boy_and_girl1",
+        "boy_and_girl2",
+        "bicycle_and_car",
+        "bicycle_and_car1",
+        "bicycle_and_car2",
+    ]
+    if args.explicand_name in skimages:
         image_path = skimage.data_dir
         explicand_fname = args.explicand_name + ".png"
-    elif args.explicand_name in ["dog_cat", "dogs", "zebra"]:
+    elif args.explicand_name in clip_images:
         image_path = constants.CLIP_DATA_PATH
         explicand_fname = args.explicand_name + ".jpg"
     else:
@@ -244,7 +265,7 @@ def main():
     is_zero_center = True
     if args.attribution_name in ["rise"]:
         is_zero_center = False
-    plot_results(explicand_raw, attribution, is_zero_center, fig_fname)
+    plot_results(explicand_raw, attribution, is_zero_center, preprocess, fig_fname)
 
     print("Done!")
 
