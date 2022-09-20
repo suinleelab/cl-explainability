@@ -112,7 +112,7 @@ class ContrastiveCorpusSimilarity(CorpusSimilarity):
         )
 
     def _rep_mean_forward(self, explicand: torch.Tensor) -> torch.Tensor:
-        explicand_rep = self.encoder(explicand)
+        explicand_rep = self.explicand_encoder(explicand)
         corpus_similarity = (
             explicand_rep * self.corpus_rep_mean.to(explicand_rep.device)
         ).sum(dim=-1)
