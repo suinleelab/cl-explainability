@@ -37,7 +37,11 @@ def main():
                 f" --batch-size {args.batch_size}", " --batch-size 32"
             )  # Always use a batch size of 32 for efficient evaluation.
             eval_command_args += f" --eval-superpixel-dim {args.eval_superpixel_dim}"
+            if args.resample_eval_foil:
+                eval_command_args += " --resample-eval-foil"
             eval_command_args += f" --eval-foil-size {args.eval_foil_size}"
+            if args.comprehensive:
+                eval_command_args += " --comprehensive"
 
             if args.mode == "attribute_only":
                 run_attribution = True
