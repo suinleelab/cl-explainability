@@ -150,10 +150,16 @@ def parse_args(evaluate: bool = False, meta: bool = False):
             dest="eval_superpixel_dim",
         )
         parser.add_argument(
+            "--resample-eval-foil",
+            action="store_true",
+            help="whether to resample the foil set for evaluation",
+            dest="resample_eval_foil",
+        )
+        parser.add_argument(
             "--eval-foil-size",
             type=int,
             default=1500,
-            help="number of foil samples for evaluating contrastive metrics",
+            help="if resampling foil samples, the foil size to resample",
             dest="eval_foil_size",
         )
         parser.add_argument(

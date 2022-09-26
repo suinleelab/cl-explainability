@@ -25,7 +25,6 @@ from cl_explain.explanations.contrastive_corpus_similarity import (
     ContrastiveCorpusSimilarity,
 )
 from cl_explain.explanations.corpus_majority_prob import CorpusMajorityProb
-from cl_explain.explanations.corpus_similarity import CorpusSimilarity
 from cl_explain.measures.pred_prob import PredProb
 from cl_explain.measures.rep_shift import RepShift
 from cl_explain.metrics.ablation import ImageAblation, compute_auc
@@ -117,15 +116,20 @@ def main():
             batch_size=args.batch_size,
             shuffle=False,
         )
+
         train_leftover_idx = target_output["train_leftover_idx"]
-        # Shuffle indices to ensure fair comparison between contrastive vs.
-        # non-contrastive explanation methods. Otherwise contrastive methods would use
-        # the same foil during attribution and evaluation.
-        train_leftover_idx = train_leftover_idx[
-            torch.randperm(train_leftover_idx.size(0))
-        ]
+        if args.resample_eval_foil:
+            # Shuffle indices for resampling.
+            train_leftover_idx = train_leftover_idx[
+                torch.randperm(train_leftover_idx.size(0))
+            ]
+            eval_foil_idx = train_leftover_idx[: args.eval_foil_size]
+        else:
+            # Keep original indices to use the same foil set.
+            eval_foil_idx = train_leftover_idx[: args.foil_size]
+
         eval_foil_dataloader = DataLoader(
-            Subset(train_dataset, indices=train_leftover_idx[: args.eval_foil_size]),
+            Subset(train_dataset, indices=eval_foil_idx),
             batch_size=args.batch_size,
             shuffle=False,
         )
@@ -136,18 +140,6 @@ def main():
         model_name_list = ["corpus_majority_prob"]
         if args.comprehensive:
             model_list += [
-                CorpusSimilarity(
-                    encoder=encoder,
-                    corpus_dataloader=corpus_dataloader,
-                    normalize=True,
-                    batch_size=args.batch_size,
-                ),
-                CorpusSimilarity(
-                    encoder=encoder,
-                    corpus_dataloader=corpus_dataloader,
-                    normalize=False,
-                    batch_size=args.batch_size,
-                ),
                 ContrastiveCorpusSimilarity(
                     encoder=encoder,
                     corpus_dataloader=corpus_dataloader,
@@ -164,8 +156,6 @@ def main():
                 ),
             ]
             model_name_list += [
-                "corpus_cosine_similarity",
-                "corpus_dot_product_similarity",
                 "contrastive_corpus_cosine_similarity",
                 "contrastive_corpus_dot_product_similarity",
             ]
@@ -295,7 +285,8 @@ def main():
             ".pkl", ""
         )
     result_filename += f"_eval_superpixel_dim={args.eval_superpixel_dim}"
-    result_filename += f"_eval_foil_size={args.eval_foil_size}"
+    if args.resample_eval_foil:
+        result_filename += f"_resampled_eval_foil_size={args.eval_foil_size}"
     if args.take_attribution_abs:
         result_filename += "_abs"
     result_filename += ".pkl"

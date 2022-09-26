@@ -80,6 +80,7 @@ do
     command+=" --gpu-num ${device}"
     command+=" --superpixel-dim ${superpixel_dim}"
     command+=" --eval-superpixel-dim ${eval_superpixel_dim}"
+    command+=" --comprehensive"
 
     screen_name+="${encoder_name}_${explanations[i]}"
     screen_name+="_${attribution_name}_${dataset_name}"
