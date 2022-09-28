@@ -390,7 +390,7 @@ def main():
                 axes[aug_img_plot_idx, j].imshow(aug_img.permute(1, 2, 0))
                 axes[aug_img_plot_idx, j].set_xticks([])
                 axes[aug_img_plot_idx, j].set_yticks([])
-                axes[aug_img_plot_idx, j].set_title(pred_info)
+                axes[aug_img_plot_idx, j].set_title(pred_info, fontsize=24)
 
                 if args.attribution_name in ["int_grad", "gradient_shape"]:
                     aug_attribution = torch.nn.functional.relu(
