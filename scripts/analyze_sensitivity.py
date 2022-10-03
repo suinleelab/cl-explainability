@@ -3,13 +3,13 @@ import argparse
 import os
 import sys
 
-attribution_choices = ["int_grad", "rise", "gradient_shap"]
+attribution_choices = ["int_grad", "rise", "gradient_shap", "random_baseline"]
 
 corpus_explanation_list = ["corpus", "contrastive_corpus"]
-corpus_size_list = [5, 20, 50, 200]  # Corpus size of 100 is already run as default.
+corpus_size_list = [1, 5, 20, 50, 100, 200]
 
 foil_explanation_list = ["contrastive_self_weighted", "contrastive_corpus"]
-foil_size_list = [100, 500, 2500, 5000]  # Foil size of 1500 is already run as default.
+foil_size_list = [100, 500, 1500, 2500, 5000]
 
 dataset_map = {
     "simclr_x1": "imagenet",
