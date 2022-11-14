@@ -33,6 +33,8 @@ def main():
                 command_args += " --use-gpu"
             command_args += f" --gpu-num {args.gpu_num}"
             command_args += f" --seed {seed}"
+            if args.randomize_model:
+                command_args += " --randomize-model"
             eval_command_args = command_args.replace(
                 f" --batch-size {args.batch_size}", " --batch-size 32"
             )  # Always use a batch size of 32 for efficient evaluation.
