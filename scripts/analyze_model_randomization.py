@@ -152,8 +152,8 @@ def average_hog_pearson(
     hog_pearson_values = []
     for i in range(pred_attributions.shape[0]):
         hog_pearson = pearsonr(
-            hog(pred_attributions[i], channel_axis=0),
-            hog(target_attributions[i], channel_axis=0),
+            hog(pred_attributions[i].mean(axis=0)),
+            hog(target_attributions[i].mean(axis=0)),
         )[0]
         if np.isnan(hog_pearson):
             hog_pearson = 0.0
@@ -170,8 +170,8 @@ def average_ssim(
     for i in range(pred_attributions.shape[0]):
         ssim_values.append(
             structural_similarity(
-                pred_attributions[i],
-                target_attributions[i],
+                pred_attributions[i].mean(axis=0),
+                target_attributions[i].mean(axis=0),
                 channel_axis=0,
             )
         )
