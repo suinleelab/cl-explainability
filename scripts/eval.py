@@ -76,6 +76,7 @@ def main():
         explanation_name=args.explanation_name,
         attribution_name=args.attribution_name,
         seed=args.seed,
+        randomize_model=args.randomize_model,
     )
     output_filename = get_output_filename(
         different_classes=args.different_classes,
