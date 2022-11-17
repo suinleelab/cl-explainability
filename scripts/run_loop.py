@@ -103,6 +103,7 @@ def main():
             command_args += f" --superpixel-dim {superpixel_dim}"
             command_args += f" --eval-superpixel-dim {eval_superpixel_dim}"
             command_args += f" --mode {args.mode}"
+            command_args += " --comprehensive"
             os.system("python scripts/run.py " + command_args)
 
 
