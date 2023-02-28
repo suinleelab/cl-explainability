@@ -156,6 +156,17 @@ def main():
         if "contrastive" in args.explanation_name:
             outputs[target]["train_foil_idx"] = train_leftover_idx[: args.foil_size]
 
+    if args.randomize_model:
+        print("Randomizing encoder parameters...")
+        for param in encoder.parameters():
+            torch.nn.init.trunc_normal_(
+                param,
+                mean=torch.mean(param),
+                std=torch.std(param),
+                a=torch.min(param),
+                b=torch.max(param),
+            )
+
     print("Computing feature attributions for each class...")
     explicand_batch_size = args.batch_size
     if args.attribution_name == "kernel_shap":
@@ -295,6 +306,7 @@ def main():
         explanation_name=args.explanation_name,
         attribution_name=args.attribution_name,
         seed=args.seed,
+        randomize_model=args.randomize_model,
     )
     os.makedirs(result_path, exist_ok=True)
     output_filename = get_output_filename(

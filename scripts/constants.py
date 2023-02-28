@@ -2,7 +2,7 @@
 
 DATA_PATH = "/projects/leelab/data/image"
 ENCODER_PATH = "/projects/leelab/cl-explainability/encoders"
-RESULT_PATH = "/projects/leelab/cl-explainability/results"
+RESULT_PATH = "/homes/gws/clin25/cl-explainability/results"
 MODEL_OUTPUT_PATH = "/projects/leelab/models/image"
 CLIP_DATA_PATH = "/projects/leelab/cl-explainability/archive/clip_use_case"
 SUPERPIXEL_ATTRIBUTION_METHODS = ["kernel_shap"]

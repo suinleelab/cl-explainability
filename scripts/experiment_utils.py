@@ -135,6 +135,12 @@ def parse_args(evaluate: bool = False, meta: bool = False):
         help="seed for random processes",
         dest="seed",
     )
+    parser.add_argument(
+        "--randomize-model",
+        action="store_true",
+        help="flag to enable randomization of model parameters",
+        dest="randomize_model",
+    )
     if evaluate:
         parser.add_argument(
             "--take-attribution-abs",
@@ -353,12 +359,15 @@ def get_result_path(
     explanation_name: str,
     attribution_name: str,
     seed: int,
+    randomize_model: bool = False,
 ) -> str:
     """Generate path for storing results."""
     if normalize_similarity:
         method_name = "normalized_"
     else:
         method_name = "unnormalized_"
+    if randomize_model:
+        method_name = "randomized_model_" + method_name
     method_name += explanation_name + "_" + attribution_name
     return os.path.join(
         constants.RESULT_PATH,
