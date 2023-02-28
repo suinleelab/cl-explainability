@@ -1,11 +1,9 @@
-# cl-explainability
+# Contrastive Corpus Attribution (COCOA)
 
-Explainability for representations learned through contrastive learning.
+Code repository for Contrastive Corpus Attribution for Explaining Representations.
 
-## Development guide
-
-### Set up the environment
-1. Git clone this repository.
+## Environment setup
+1. Git clone or download this repository.
 2. `cd cl-explainability`.
 3. Create and activate the specified conda environment by running
     ```
@@ -14,7 +12,17 @@ Explainability for representations learned through contrastive learning.
     ```
 4. Install the `cl_explain` package and the necessary dependencies for
 development by running `pip install -e ".[dev]"`.
-5. Git pre-commit hooks (https://pre-commit.com/) are used to automatically
-check and fix formatting errors before a Git commit happens. Run
-`pre-commit install` to install all the hooks.
-6. Test that the pre-commit hooks work by running `pre-commit run --all-files`.
+
+## Set up project paths
+Modify global constants in `scripts/constants.py` for paths where the image data,
+encoder models, and results are stored.
+
+## Run experiments
+- To train a ResNet18 model for MURA, execute `python scripts/train_classifier.py`. Run
+`python scripts/train_classifier.py --help` to see how to use each command line
+argument. Please see our paper for how to obtain a trained SimCLR model for
+ImageNet and a trained SimSiam model for CIFAR-10.
+- To run feature attributions, execute `python scripts/attribute.py`. Run
+`python scripts/attribute.py --help` to see how to use each command line argument.
+- To evaluate feature attributions, execute `python scripts/eval.py`. Run
+`python scripts/eval.py --help` to see how to use each command line argument.
